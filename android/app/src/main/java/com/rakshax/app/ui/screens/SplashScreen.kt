@@ -1,13 +1,11 @@
 package com.rakshax.app.ui.screens
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,10 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rakshax.app.ui.theme.*
+import com.rakshax.app.R
 import kotlinx.coroutines.delay
 
 @Composable
@@ -53,33 +54,18 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
+            Image(
+                painter = painterResource(R.drawable.rakshax_logo),
+                contentDescription = "RakshaX logo",
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(110.dp)
+                    .size(300.dp)
                     .scale(pulseScale)
-                    .clip(CircleShape)
-                    .background(EmergencyRed)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = "RakshaX Logo",
-                    tint = Color.White,
-                    modifier = Modifier.size(60.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "RAKSHAX",
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 3.sp,
-                color = TextPrimary
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = "ESP32 Physical SOS & Safety Intelligence",
