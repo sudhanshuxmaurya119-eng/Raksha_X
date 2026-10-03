@@ -46,6 +46,9 @@ fun AuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding()
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally

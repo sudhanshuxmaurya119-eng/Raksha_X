@@ -50,6 +50,7 @@ fun RakshaXNavGraph(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (showBars) {
                 RakshaXTopBar(

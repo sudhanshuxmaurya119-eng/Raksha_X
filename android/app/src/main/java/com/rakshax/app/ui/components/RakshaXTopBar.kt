@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,84 +30,89 @@ fun RakshaXTopBar(
     onDeviceClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(BackgroundDark)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+    Surface(
+        color = BackgroundDark,
+        modifier = modifier.fillMaxWidth()
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(EmergencyRed)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = "RakshaX",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(EmergencyRed)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = "RakshaX",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "RAKSHAX",
+                        color = TextPrimary,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = title,
+                        color = TextSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text(
-                    text = "RAKSHAX",
-                    color = TextPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
+
+            // Connection Pill
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(SurfaceDark)
+                    .border(1.dp, SurfaceBorder, RoundedCornerShape(20.dp))
+                    .clickable { onDeviceClick() }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                val (iconColor, statusText) = when (deviceStatus) {
+                    ConnectionStatus.CONNECTED -> Pair(SafeGreen, "ESP32 Connected")
+                    ConnectionStatus.CONNECTING -> Pair(WarningAmber, "Connecting...")
+                    ConnectionStatus.SCANNING -> Pair(InfoCyan, "Scanning...")
+                    ConnectionStatus.DISCONNECTED -> Pair(EmergencyRed, "Device Offline")
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(iconColor)
                 )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.Default.Bluetooth,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = title,
-                    color = TextSecondary,
+                    text = statusText,
+                    color = TextPrimary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
-        }
-
-        // Connection Pill
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(SurfaceDark)
-                .border(1.dp, SurfaceBorder, RoundedCornerShape(20.dp))
-                .clickable { onDeviceClick() }
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-        ) {
-            val (iconColor, statusText) = when (deviceStatus) {
-                ConnectionStatus.CONNECTED -> Pair(SafeGreen, "ESP32 Connected")
-                ConnectionStatus.CONNECTING -> Pair(WarningAmber, "Connecting...")
-                ConnectionStatus.SCANNING -> Pair(InfoCyan, "Scanning...")
-                ConnectionStatus.DISCONNECTED -> Pair(EmergencyRed, "Device Offline")
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(iconColor)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Icon(
-                imageVector = Icons.Default.Bluetooth,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = statusText,
-                color = TextPrimary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }

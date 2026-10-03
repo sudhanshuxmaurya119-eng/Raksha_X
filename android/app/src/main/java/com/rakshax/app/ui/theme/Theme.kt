@@ -1,11 +1,11 @@
 package com.rakshax.app.ui.theme
 
 import android.app.Activity
+import android.graphics.Color as AndroidColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -36,8 +36,10 @@ fun RakshaXTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = BackgroundDark.toArgb()
-            window.navigationBarColor = BackgroundDark.toArgb()
+            @Suppress("DEPRECATION")
+            window.statusBarColor = AndroidColor.TRANSPARENT
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = AndroidColor.TRANSPARENT
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
         }
