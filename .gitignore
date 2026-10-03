@@ -1,6 +1,13 @@
 # Keep the repository focused on RakshaX source.
 AuraSafe/
 
+# Backend local secrets, databases, caches, and virtual environments.
+Backend/.env
+Backend/*.db
+Backend/**/__pycache__/
+Backend/.pytest_cache/
+Backend/.venv/
+
 # Android and Gradle generated files.
 .gradle/
 **/.gradle/
@@ -19,3 +26,4 @@ local.properties
 .DS_Store
 Thumbs.db
 .vscode/
+*.log

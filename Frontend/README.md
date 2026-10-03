@@ -1,13 +1,13 @@
 `# RakshaX Android Architecture & Phase Implementation Roadmap
 
 ## 📌 Project Overview
-**RakshaX** is an end-to-end personal safety ecosystem connecting a physical **ESP32-C3** hardware panic button via Bluetooth Low Energy (BLE) to this native Android application and integrating with the **AuroraSafe** AI safety intelligence backend.
+**RakshaX** is an end-to-end personal safety ecosystem connecting a physical **ESP32-C3** hardware panic button via Bluetooth Low Energy (BLE) to this native Android application and integrating with the **RakshaX FastAPI** safety intelligence backend.
 
 ---
 
 ## 🚀 Phase-by-Phase Roadmap
 
-### [x] Phase 0 — Existing AuroraSafe Project Audit & Reuse Plan
+### [x] Phase 0 — Existing Backend Audit & Reuse Plan
 * Audited FastAPI backend (`models`, `ml`, `routers`, `schemas`, `services`).
 * Identified direct reuse of XGBoost risk models, DBSCAN clustering, OSRM safe route A* heuristics, and emergency NGO directory.
 * Established token-efficient architecture avoiding duplicate boilerplate.
@@ -69,8 +69,8 @@ Implementation notes:
 
 ---
 
-### [x] Phase 5 — AuroraSafe Backend Integration
-* Retrofit / OkHttp client communicating with AuroraSafe FastAPI endpoints.
+### [x] Phase 5 — RakshaX Backend Integration
+* Retrofit / OkHttp client communicating with the RakshaX FastAPI endpoints.
 * Endpoints: `POST /sos/trigger`, `GET /sos/{id}/status`, `POST /sos/{id}/acknowledge`, `GET /safety/risk-score`.
 * Network resilience, timeout handling, and offline queuing.
 
@@ -98,7 +98,7 @@ Implementation notes:
 
 ---
 
-### [x] Phase 9 — AuroraSafe Intelligence Live Sync
+### [x] Phase 9 — RakshaX Intelligence Live Sync
 * Real-time sync of XGBoost predictive risk scores.
 * Dynamic DBSCAN hotspot markers loaded around user's active coordinates.
 
@@ -126,7 +126,7 @@ Implementation notes:
 * Full live demo walkthrough from physical ESP32 button click to contact acknowledgement.
 
 Implementation notes:
-* OkHttp uses `AURORA_SAFE_BASE_URL` from `android/local.properties` and retries failed SOS posts through an encrypted queue.
+* OkHttp uses `AURORA_SAFE_BASE_URL` from `Frontend/local.properties` and retries failed SOS posts through an encrypted queue.
 * FCM registration, high-priority SOS data notifications, notification acknowledgement, and backend status polling are implemented. Configure the Firebase Android app before testing live delivery.
 * `SosEscalationService` keeps the 45-second P1 -> P2 -> P3 timer alive when the activity is backgrounded, and stops immediately on acknowledgement or resolve.
 * The Safety Map syncs risk scores, nearby incidents, DBSCAN hotspot zones, and AuroraSafe route waypoints. A native Google `MapView` is used when `MAPS_API_KEY` is present; the cached visualizer remains available without it.
@@ -134,7 +134,7 @@ Implementation notes:
 * Android Keystore AES/GCM protects JWTs and queued location payloads. AuroraSafe validates bearer JWTs for push-token registration and release builds disable cleartext traffic.
 
 Verification and demo flow:
-1. Run AuroraSafe, then set `AURORA_SAFE_BASE_URL` and optionally `MAPS_API_KEY` in `android/local.properties`.
+1. Run the RakshaX backend from `../Backend`, then set `AURORA_SAFE_BASE_URL` and optionally `MAPS_API_KEY` in `Frontend/local.properties`.
 2. Run `./gradlew :app:testDebugUnitTest :app:assembleDebug`.
 3. Enable the background listener, pair the ESP32-C3, and trigger the two-second hardware press.
 4. Confirm the live SOS screen, backend event, FCM notification, acknowledgement action, and escalation stop.
@@ -144,11 +144,11 @@ The automated checks cover BLE signal parsing and escalation policy transitions.
 
 ## Integration Setup
 
-Android reads these optional values from `android/local.properties`:
+Android reads these optional values from `Frontend/local.properties`:
 
 ```properties
 AURORA_SAFE_BASE_URL=http://10.0.2.2:8000
 MAPS_API_KEY=your_google_maps_key
 ```
 
-For live FCM, configure the Android Firebase application and set `FIREBASE_SERVICE_ACCOUNT_JSON` in `AuraSafe/backend/.env`. Do not commit credential files or secrets.
+For live FCM, configure the Android Firebase application and set `FIREBASE_SERVICE_ACCOUNT_JSON` in `Backend/.env`. Do not commit credential files or secrets.
