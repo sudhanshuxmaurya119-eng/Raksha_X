@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.rakshax.app.data.ble.BleProtocolTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-03T17:51:34.684Z" hostname="LAPTOP-C8PHPN0S" time="0.021">
+  <properties/>
+  <testcase name="acceptsOnlyTheTrimmedSosSignal" classname="com.rakshax.app.data.ble.BleProtocolTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">RakshaX</string>
+    <string name="sos_title">Emergency SOS</string>
+    <string name="call_112">Call 112</string>
+</resources>

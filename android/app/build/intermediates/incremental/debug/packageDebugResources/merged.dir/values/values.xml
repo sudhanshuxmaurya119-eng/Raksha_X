@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="emergency_red">#EF4444</color>
+    <color name="emergency_red_dark">#DC2626</color>
+    <color name="primary_dark">#0F172A</color>
+    <color name="safe_green">#10B981</color>
+    <color name="surface_dark">#1E293B</color>
+    <color name="warning_yellow">#F59E0B</color>
+    <color name="white">#FFFFFF</color>
+    <string name="app_name">RakshaX</string>
+    <string name="call_112">Call 112</string>
+    <string name="sos_title">Emergency SOS</string>
+    <style name="Theme.RakshaX" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0F172A</item>
+        <item name="android:navigationBarColor">#0F172A</item>
+    </style>
+</resources>
