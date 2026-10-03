@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.rakshax.app.data.sos.SosEscalationPolicyTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-03T17:51:34.709Z" hostname="LAPTOP-C8PHPN0S" time="0.004">
-  <properties/>
-  <testcase name="advancesThroughPriorityStages" classname="com.rakshax.app.data.sos.SosEscalationPolicyTest" time="0.003"/>
-  <testcase name="acknowledgementOrFinalStageStopsEscalation" classname="com.rakshax.app.data.sos.SosEscalationPolicyTest" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

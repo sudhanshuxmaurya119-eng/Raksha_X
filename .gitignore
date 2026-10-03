@@ -1,0 +1,21 @@
+# Keep the repository focused on RakshaX source.
+AuraSafe/
+
+# Android and Gradle generated files.
+.gradle/
+**/.gradle/
+**/build/
+.idea/
+**/.idea/
+.kotlin/
+**/.kotlin/
+local.properties
+**/local.properties
+*.iml
+*.apk
+*.aab
+
+# Local tooling and OS files.
+.DS_Store
+Thumbs.db
+.vscode/
