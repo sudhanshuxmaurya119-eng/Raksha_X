@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Initial news fetch failed (non-fatal): {e}")
 
-    logger.info("✅ AuroraSafe API startup complete — real-time pipeline active!")
+    logger.info("RakshaX API startup complete - real-time pipeline active")
 
     yield
 
@@ -69,7 +69,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="RakshaX API",
-    description="AI-Powered Predictive Safety Intelligence Platform — Delhi NCR",
+    description="Personal safety, SOS escalation, and predictive safety intelligence API",
     version="2.0.0",
     lifespan=lifespan
 )

@@ -2,7 +2,16 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import DeclarativeBase
 from config import settings
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
+database_options = {}
+if settings.DATABASE_URL.startswith("postgresql+asyncpg://"):
+    # Supabase PostgreSQL uses SSL. Disabling the asyncpg statement cache also
+    # keeps transaction-pooler connections compatible with PgBouncer.
+    database_options["connect_args"] = {
+        "ssl": settings.DATABASE_SSL_REQUIRED,
+        "statement_cache_size": 0,
+    }
+
+engine = create_async_engine(settings.DATABASE_URL, echo=False, **database_options)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 class Base(DeclarativeBase):

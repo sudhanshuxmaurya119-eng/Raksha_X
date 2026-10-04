@@ -53,10 +53,11 @@ GNEWS_API_KEY=
 OPENWEATHER_API_KEY=
 ```
 
-For Supabase PostgreSQL, replace `DATABASE_URL` with an async SQLAlchemy URL:
+To connect this backend to Supabase, open the Supabase dashboard and copy the PostgreSQL connection string from `Project Settings > Database > Connection pooling`. Use the transaction pooler string for the deployed API, change the scheme to `postgresql+asyncpg`, and set SSL on:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:<password>@<host>:5432/postgres
+DATABASE_SSL_REQUIRED=true
 ```
 
 Keep the Supabase connection string server-side. The Android app should call this FastAPI service and should not receive database credentials.
@@ -120,21 +121,27 @@ Keep the Supabase connection string server-side. The Android app should call thi
 - High-priority SOS data notifications through FCM.
 - Graceful disabled mode when Firebase credentials are absent.
 
-### [ ] Phase 7 - Supabase Production Database
+### [x] Phase 7 - Supabase Database Adapter
+
+- Added the `asyncpg` driver and PostgreSQL URL support.
+- Added SSL configuration for Supabase connections.
+- Disabled asyncpg statement caching for Supabase transaction-pooler compatibility.
+
+### [ ] Phase 8 - Supabase Project Provisioning
 
 - Create the Supabase PostgreSQL project.
-- Configure `postgresql+asyncpg` in the deployment environment.
+- Put the project connection string in `Backend/.env`.
 - Validate schema creation and seed migration against PostgreSQL.
 - Add production migration tooling and backups.
 
-### [ ] Phase 8 - Production Security
+### [ ] Phase 9 - Production Security
 
 - Replace development secrets and tighten CORS origins.
 - Add request rate limits, audit logging, and structured error responses.
 - Move Firebase credentials to the hosting provider's secret manager.
 - Add HTTPS deployment and health checks.
 
-### [ ] Phase 9 - Backend Test and Operations Coverage
+### [ ] Phase 10 - Backend Test and Operations Coverage
 
 - Add API tests for auth, SOS, acknowledgement, and notification flows.
 - Add PostgreSQL integration tests.
