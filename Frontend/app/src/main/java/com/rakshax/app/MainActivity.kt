@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        com.rakshax.app.ui.theme.ThemeManager.init(applicationContext)
         locationRepository = LocationRepository(applicationContext)
         auroraSafeRepository = AuroraSafeRepository(applicationContext)
         networkStatusMonitor = NetworkStatusMonitor(applicationContext)

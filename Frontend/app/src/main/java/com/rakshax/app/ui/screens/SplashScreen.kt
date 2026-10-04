@@ -1,6 +1,5 @@
 package com.rakshax.app.ui.screens
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,11 +8,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -28,17 +25,6 @@ import kotlinx.coroutines.delay
 fun SplashScreen(
     onTimeout: () -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "splashPulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "splashScale"
-    )
-
     LaunchedEffect(Unit) {
         delay(1800)
         onTimeout()
@@ -61,7 +47,6 @@ fun SplashScreen(
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .size(300.dp)
-                    .scale(pulseScale)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White)
             )

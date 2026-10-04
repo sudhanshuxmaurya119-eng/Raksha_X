@@ -1,6 +1,7 @@
 package com.rakshax.app.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -13,7 +14,7 @@ val Typography = Typography(
         fontSize = 32.sp,
         lineHeight = 38.sp,
         letterSpacing = (-0.5).sp,
-        color = TextPrimary
+        color = Color.Unspecified
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -21,7 +22,7 @@ val Typography = Typography(
         fontSize = 24.sp,
         lineHeight = 30.sp,
         letterSpacing = 0.sp,
-        color = TextPrimary
+        color = Color.Unspecified
     ),
     titleLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -29,7 +30,7 @@ val Typography = Typography(
         fontSize = 20.sp,
         lineHeight = 26.sp,
         letterSpacing = 0.sp,
-        color = TextPrimary
+        color = Color.Unspecified
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -37,7 +38,7 @@ val Typography = Typography(
         fontSize = 16.sp,
         lineHeight = 22.sp,
         letterSpacing = 0.15.sp,
-        color = TextPrimary
+        color = Color.Unspecified
     ),
     bodyLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -45,7 +46,7 @@ val Typography = Typography(
         fontSize = 15.sp,
         lineHeight = 22.sp,
         letterSpacing = 0.25.sp,
-        color = TextSecondary
+        color = Color.Unspecified
     ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -53,7 +54,7 @@ val Typography = Typography(
         fontSize = 13.sp,
         lineHeight = 18.sp,
         letterSpacing = 0.2.sp,
-        color = TextSecondary
+        color = Color.Unspecified
     ),
     labelLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -61,7 +62,7 @@ val Typography = Typography(
         fontSize = 14.sp,
         lineHeight = 18.sp,
         letterSpacing = 0.5.sp,
-        color = TextPrimary
+        color = Color.Unspecified
     ),
     labelMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -69,7 +70,7 @@ val Typography = Typography(
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp,
-        color = TextSecondary
+        color = Color.Unspecified
     ),
     labelSmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -77,6 +78,6 @@ val Typography = Typography(
         fontSize = 10.sp,
         lineHeight = 14.sp,
         letterSpacing = 1.sp,
-        color = TextMuted
+        color = Color.Unspecified
     )
 )

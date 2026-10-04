@@ -8,8 +8,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,43 +78,66 @@ fun RakshaXTopBar(
                 }
             }
 
-            // Connection Pill
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, SurfaceBorder, RoundedCornerShape(20.dp))
-                    .clickable { onDeviceClick() }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                val (iconColor, statusText) = when (deviceStatus) {
-                    ConnectionStatus.CONNECTED -> Pair(SafeGreen, "ESP32 Connected")
-                    ConnectionStatus.CONNECTING -> Pair(WarningAmber, "Connecting...")
-                    ConnectionStatus.SCANNING -> Pair(InfoCyan, "Scanning...")
-                    ConnectionStatus.DISCONNECTED -> Pair(EmergencyRed, "Device Offline")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val isDark = LocalRakshaXColors.current.isDark
+
+                IconButton(
+                    onClick = { ThemeManager.toggleTheme(context, isDark) },
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceElevated)
+                        .border(1.dp, SurfaceBorder, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = if (isDark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                        contentDescription = "Toggle Light/Dark Theme",
+                        tint = if (isDark) WarningAmber else AccentBlue,
+                        modifier = Modifier.size(17.dp)
+                    )
                 }
 
-                Box(
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Connection Pill
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(iconColor)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    imageVector = Icons.Default.Bluetooth,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = statusText,
-                    color = TextPrimary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(SurfaceDark)
+                        .border(1.dp, SurfaceBorder, RoundedCornerShape(20.dp))
+                        .clickable { onDeviceClick() }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    val (iconColor, statusText) = when (deviceStatus) {
+                        ConnectionStatus.CONNECTED -> Pair(SafeGreen, "ESP32 Connected")
+                        ConnectionStatus.CONNECTING -> Pair(WarningAmber, "Connecting...")
+                        ConnectionStatus.SCANNING -> Pair(InfoCyan, "Scanning...")
+                        ConnectionStatus.DISCONNECTED -> Pair(EmergencyRed, "Device Offline")
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(iconColor)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.Bluetooth,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = statusText,
+                        color = TextPrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

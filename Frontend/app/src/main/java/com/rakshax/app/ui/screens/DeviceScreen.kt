@@ -304,8 +304,9 @@ private fun TelemetryRow(
     label: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    valueColor: Color = TextPrimary
+    valueColor: Color = Color.Unspecified
 ) {
+    val displayValueColor = if (valueColor != Color.Unspecified) valueColor else TextPrimary
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -327,7 +328,7 @@ private fun TelemetryRow(
         }
         Text(
             text = value,
-            color = valueColor,
+            color = displayValueColor,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
