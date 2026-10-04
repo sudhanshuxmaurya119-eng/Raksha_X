@@ -53,7 +53,7 @@ GNEWS_API_KEY=
 OPENWEATHER_API_KEY=
 ```
 
-To connect this backend to Supabase, open the Supabase dashboard and copy the PostgreSQL connection string from `Project Settings > Database > Connection pooling`. Use the transaction pooler string for the deployed API, change the scheme to `postgresql+asyncpg`, and set SSL on:
+To connect this backend to Supabase, open the Supabase dashboard and copy the PostgreSQL connection string from `Project Settings > Database > Connection pooling`. The HTTPS project URL (`https://<project-ref>.supabase.co`) is not a SQLAlchemy database URL. Use the transaction pooler string for the deployed API, change the scheme to `postgresql+asyncpg`, and set SSL on:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:<password>@<host>:5432/postgres
