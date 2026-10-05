@@ -14,7 +14,9 @@ val localProperties = Properties().apply {
     }
 }
 
-val auroraSafeBaseUrl = localProperties.getProperty("AURORA_SAFE_BASE_URL", "http://10.0.2.2:8000")
+val auroraSafeBaseUrl = providers.environmentVariable("AURORA_SAFE_BASE_URL").orNull
+    ?: localProperties.getProperty("AURORA_SAFE_BASE_URL")
+    ?: "https://rakshax-api-sudhanshu.onrender.com"
 val googleMapsApiKey = localProperties.getProperty("MAPS_API_KEY", "")
 val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull

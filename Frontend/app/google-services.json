@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "517100952595",
+    "project_id": "rakshax-ec3c5",
+    "storage_bucket": "rakshax-ec3c5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:517100952595:android:093880ac106d5919bb73e6",
+        "android_client_info": {
+          "package_name": "com.rakshax.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "517100952595-ldcp0tot58pv1kh60u8djgvuqlb9gher.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rakshax.app",
+            "certificate_hash": "c16299e3d969663b79edec0fba7cb1e634b63649"
+          }
+        },
+        {
+          "client_id": "517100952595-r3mhqmu9cc5ottpg2ma49p9bv4dtrr05.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW-3QWJo1kK3-W2WQ6JEAqsxD2aF8Qwcw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "517100952595-r3mhqmu9cc5ottpg2ma49p9bv4dtrr05.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

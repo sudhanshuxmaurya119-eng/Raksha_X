@@ -14,25 +14,34 @@ import kotlinx.coroutines.flow.update
 
 object MockDataRepository {
 
-    // Current User
-    private val _currentUser = MutableStateFlow(
-        User(
-            id = "usr_001",
-            username = "Aarav Sharma",
-            email = "aarav.sharma@rakshax.org",
-            phone = "+91 98765 43210"
-        )
+    private val demoUser = User(
+        id = "usr_001",
+        username = "Aarav Sharma",
+        email = "aarav.sharma@rakshax.org",
+        phone = "+91 98765 43210"
     )
+
+    // Current User
+    private val _currentUser = MutableStateFlow(demoUser)
     val currentUser: StateFlow<User> = _currentUser.asStateFlow()
 
     fun setCurrentUser(session: AuthSession) {
         _currentUser.update { current ->
+            val displayEmail = session.email
+                ?.takeUnless { it.endsWith("@rakshax.local", ignoreCase = true) }
+                ?: if (!session.phone.isNullOrBlank()) "Phone verified account" else current.email
             current.copy(
                 id = session.userId ?: current.id,
                 username = session.username ?: current.username,
-                email = session.email ?: current.email
+                email = displayEmail,
+                phone = session.phone ?: current.phone,
+                age = session.age ?: current.age
             )
         }
+    }
+
+    fun resetCurrentUser() {
+        _currentUser.value = demoUser
     }
 
     // Trusted Contacts

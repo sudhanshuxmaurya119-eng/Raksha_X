@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
+import com.google.firebase.auth.FirebaseAuth
 import com.rakshax.app.data.ble.BleRepository
 import com.rakshax.app.data.location.LocationRepository
 import com.rakshax.app.data.location.SosLocationPayload
@@ -205,6 +206,9 @@ fun RakshaXNavGraph(
                     onNavigateToContacts = { navController.navigate(Screen.Contacts.route) },
                     onNavigateToDevice = { navController.navigate(Screen.Device.route) },
                     onLogout = {
+                        auroraSafeRepository.clearSession()
+                        FirebaseAuth.getInstance().signOut()
+                        MockDataRepository.resetCurrentUser()
                         navController.navigate(Screen.Auth.route) {
                             popUpTo(0) { inclusive = true }
                         }

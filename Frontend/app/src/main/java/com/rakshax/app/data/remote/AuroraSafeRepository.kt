@@ -15,6 +15,10 @@ class AuroraSafeRepository(context: Context) {
 
     suspend fun loginWithFirebase(firebaseIdToken: String) = api.loginWithFirebase(firebaseIdToken)
 
+    fun restoreSession() = api.restoreSession()
+
+    suspend fun fetchCurrentUser() = api.fetchCurrentUser()
+
     suspend fun register(username: String, email: String, password: String, phone: String, age: Int) =
         api.register(username, email, password, phone, age)
 

@@ -18,9 +18,9 @@ import java.util.concurrent.TimeUnit
 class AuroraSafeApi(context: Context) {
     private val secureStore = SecureStore(context)
     private val client = OkHttpClient.Builder()
-        .connectTimeout(8, TimeUnit.SECONDS)
-        .readTimeout(12, TimeUnit.SECONDS)
-        .writeTimeout(12, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(Interceptor { chain ->
             val token = secureStore.getString(TOKEN_KEY)
             val request = chain.request().newBuilder()
@@ -30,7 +30,9 @@ class AuroraSafeApi(context: Context) {
             chain.proceed(request)
         })
         .build()
-    private val baseUrl = BuildConfig.AURORA_SAFE_BASE_URL.trimEnd('/')
+    private val baseUrl = BuildConfig.AURORA_SAFE_BASE_URL
+        .ifBlank { DEFAULT_BASE_URL }
+        .trimEnd('/')
 
     suspend fun login(email: String, password: String): ApiResult<AuthSession> = request(
         method = "POST",
@@ -40,12 +42,7 @@ class AuroraSafeApi(context: Context) {
             put("password", password)
         }
     ) { json ->
-        AuthSession(
-            token = json.getString("access_token"),
-            userId = json.optJSONObject("user")?.optString("id"),
-            username = json.optJSONObject("user")?.optString("username"),
-            email = json.optJSONObject("user")?.optString("email")
-        ).also { secureStore.putString(TOKEN_KEY, it.token) }
+        parseAuthSession(json).also(::persistSession)
     }
 
     suspend fun loginWithFirebase(firebaseIdToken: String): ApiResult<AuthSession> = request(
@@ -53,12 +50,24 @@ class AuroraSafeApi(context: Context) {
         path = "/auth/google",
         body = JSONObject().apply { put("id_token", firebaseIdToken) }
     ) { json ->
-        AuthSession(
-            token = json.getString("access_token"),
-            userId = json.optJSONObject("user")?.optString("id"),
-            username = json.optJSONObject("user")?.optString("username"),
-            email = json.optJSONObject("user")?.optString("email")
-        ).also { secureStore.putString(TOKEN_KEY, it.token) }
+        parseAuthSession(json).also(::persistSession)
+    }
+
+    fun restoreSession(): AuthSession? = secureStore.getString(SESSION_KEY)
+        ?.let { raw -> runCatching { parseStoredSession(JSONObject(raw)) }.getOrNull() }
+
+    suspend fun fetchCurrentUser(): ApiResult<AuthSession> {
+        val token = secureStore.getString(TOKEN_KEY)
+        if (token.isNullOrBlank()) return ApiResult(error = "No saved session")
+
+        val result = request(
+            method = "GET",
+            path = "/auth/me"
+        ) { json ->
+            parseUserSession(json, token).also(::persistSession)
+        }
+        if (result.statusCode == 401) clearSession()
+        return result
     }
 
     suspend fun register(
@@ -207,7 +216,10 @@ class AuroraSafeApi(context: Context) {
         )
     }
 
-    fun clearSession() = secureStore.putString(TOKEN_KEY, null)
+    fun clearSession() {
+        secureStore.putString(TOKEN_KEY, null)
+        secureStore.putString(SESSION_KEY, null)
+    }
 
     private suspend fun <T> request(
         method: String,
@@ -279,8 +291,52 @@ class AuroraSafeApi(context: Context) {
         )
     }
 
+    private fun parseAuthSession(json: JSONObject): AuthSession {
+        val token = json.getString("access_token")
+        val user = json.optJSONObject("user") ?: JSONObject()
+        return parseUserSession(user, token)
+    }
+
+    private fun parseUserSession(user: JSONObject, token: String): AuthSession = AuthSession(
+        token = token,
+        userId = user.optionalString("id"),
+        username = user.optionalString("username"),
+        email = user.optionalString("email"),
+        phone = user.optionalString("phone"),
+        age = if (user.isNull("age")) null else user.optInt("age")
+    )
+
+    private fun parseStoredSession(json: JSONObject): AuthSession = AuthSession(
+        token = json.getString("token"),
+        userId = json.optionalString("userId"),
+        username = json.optionalString("username"),
+        email = json.optionalString("email"),
+        phone = json.optionalString("phone"),
+        age = if (json.isNull("age")) null else json.optInt("age")
+    )
+
+    private fun persistSession(session: AuthSession) {
+        secureStore.putString(TOKEN_KEY, session.token)
+        secureStore.putString(
+            SESSION_KEY,
+            JSONObject().apply {
+                put("token", session.token)
+                put("userId", session.userId ?: JSONObject.NULL)
+                put("username", session.username ?: JSONObject.NULL)
+                put("email", session.email ?: JSONObject.NULL)
+                put("phone", session.phone ?: JSONObject.NULL)
+                put("age", session.age ?: JSONObject.NULL)
+            }.toString()
+        )
+    }
+
+    private fun JSONObject.optionalString(key: String): String? =
+        if (isNull(key)) null else optString(key).takeIf { it.isNotBlank() }
+
     private companion object {
+        const val DEFAULT_BASE_URL = "https://rakshax-api-sudhanshu.onrender.com"
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
         const val TOKEN_KEY = "aurora_access_token"
+        const val SESSION_KEY = "aurora_auth_session"
     }
 }

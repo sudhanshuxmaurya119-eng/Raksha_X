@@ -34,13 +34,23 @@ class MainActivity : ComponentActivity() {
         com.rakshax.app.ui.theme.ThemeManager.init(applicationContext)
         locationRepository = LocationRepository(applicationContext)
         auroraSafeRepository = AuroraSafeRepository(applicationContext)
+        auroraSafeRepository.restoreSession()?.let { session ->
+            MockDataRepository.setCurrentUser(session)
+            FcmRegistration.registerCurrentDevice(applicationContext)
+        }
+        lifecycleScope.launch {
+            val result = auroraSafeRepository.fetchCurrentUser()
+            result.value?.let { session ->
+                MockDataRepository.setCurrentUser(session)
+                FcmRegistration.registerCurrentDevice(applicationContext)
+            }
+        }
         networkStatusMonitor = NetworkStatusMonitor(applicationContext)
         lifecycleScope.launch {
             networkStatusMonitor.isOnline.collect { online ->
                     if (online) auroraSafeRepository.flushPendingActions()
                 }
         }
-        FcmRegistration.registerCurrentDevice(applicationContext)
         bleRepository = BleRepository(applicationContext) { source ->
             lifecycleScope.launch {
                 val location = locationRepository.getCurrentLocation()
