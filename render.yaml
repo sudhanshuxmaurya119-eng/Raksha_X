@@ -10,20 +10,30 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: rakshax-postgres
+          property: connectionString
       - key: DATABASE_SSL_REQUIRED
-        sync: false
+        value: "false"
       - key: SECRET_KEY
         generateValue: true
       - key: FIREBASE_PROJECT_ID
         value: rakshax-ec3c5
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
-        sync: false
+        value: ""
       - key: GEMINI_API_KEY
-        sync: false
+        value: ""
       - key: NEWS_API_KEY
-        sync: false
+        value: ""
       - key: GNEWS_API_KEY
-        sync: false
+        value: ""
       - key: OPENWEATHER_API_KEY
-        sync: false
+        value: ""
+
+databases:
+  - name: rakshax-postgres
+    databaseName: rakshax
+    user: rakshax
+    plan: free
+    region: singapore
+    ipAllowList: []

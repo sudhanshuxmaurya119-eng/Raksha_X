@@ -41,8 +41,8 @@ The repository intentionally excludes local secrets, Firebase configuration, Goo
 
 1. Push this repository to GitHub and choose **New + > Blueprint** in Render.
 2. Connect this repository and apply `render.yaml`.
-3. Enter a production PostgreSQL `DATABASE_URL` and set `DATABASE_SSL_REQUIRED` for that provider. Do not use the local SQLite URL for production.
-4. The API health check is `/health`. Render's free web service may sleep when idle; provide a persistent production database because the API stores user and SOS data.
+3. The Blueprint creates a private Render Postgres database and wires its connection URL into the API automatically. This demo database uses Render's free tier, which expires after 30 days; upgrade it before storing real user or SOS data, or the database and its data will eventually be deleted.
+4. The API health check is `/health`. Render's free web service may sleep when idle.
 5. Add `FIREBASE_SERVICE_ACCOUNT_JSON` in Render only if live FCM push delivery is needed.
 
 ### Android APK on GitHub Releases
