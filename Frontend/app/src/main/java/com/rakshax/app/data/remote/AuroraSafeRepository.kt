@@ -13,8 +13,10 @@ class AuroraSafeRepository(context: Context) {
 
     suspend fun login(email: String, password: String) = api.login(email, password)
 
-    suspend fun register(username: String, email: String, password: String, phone: String) =
-        api.register(username, email, password, phone)
+    suspend fun loginWithFirebase(firebaseIdToken: String) = api.loginWithFirebase(firebaseIdToken)
+
+    suspend fun register(username: String, email: String, password: String, phone: String, age: Int) =
+        api.register(username, email, password, phone, age)
 
     suspend fun triggerSos(
         location: SosLocationPayload?,

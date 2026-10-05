@@ -115,12 +115,23 @@ fun RakshaXNavGraph(
                             popUpTo(Screen.Auth.route) { inclusive = true }
                         }
                     },
-                    onAuthSubmit = { isRegister, name, email, phone, password ->
+                    onAuthSubmit = { isRegister, name, email, phone, password, age, usePhoneLogin ->
                         val result = if (isRegister) {
-                            auroraSafeRepository.register(name, email, password, phone)
+                            auroraSafeRepository.register(name, email, password, phone, age)
                         } else {
-                            auroraSafeRepository.login(email, password)
+                            auroraSafeRepository.login(
+                                if (usePhoneLogin) phone else email,
+                                password
+                            )
                         }
+                        result.value?.let {
+                            MockDataRepository.setCurrentUser(it)
+                            FcmRegistration.registerCurrentDevice(navController.context)
+                        }
+                        if (result.isSuccess) null else result.error ?: "Unable to contact AuroraSafe"
+                    },
+                    onGoogleAuth = { firebaseIdToken ->
+                        val result = auroraSafeRepository.loginWithFirebase(firebaseIdToken)
                         result.value?.let {
                             MockDataRepository.setCurrentUser(it)
                             FcmRegistration.registerCurrentDevice(navController.context)

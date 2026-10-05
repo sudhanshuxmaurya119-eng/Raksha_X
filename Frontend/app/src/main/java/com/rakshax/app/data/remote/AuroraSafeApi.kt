@@ -48,11 +48,25 @@ class AuroraSafeApi(context: Context) {
         ).also { secureStore.putString(TOKEN_KEY, it.token) }
     }
 
+    suspend fun loginWithFirebase(firebaseIdToken: String): ApiResult<AuthSession> = request(
+        method = "POST",
+        path = "/auth/google",
+        body = JSONObject().apply { put("id_token", firebaseIdToken) }
+    ) { json ->
+        AuthSession(
+            token = json.getString("access_token"),
+            userId = json.optJSONObject("user")?.optString("id"),
+            username = json.optJSONObject("user")?.optString("username"),
+            email = json.optJSONObject("user")?.optString("email")
+        ).also { secureStore.putString(TOKEN_KEY, it.token) }
+    }
+
     suspend fun register(
         username: String,
         email: String,
         password: String,
-        phone: String
+        phone: String,
+        age: Int
     ): ApiResult<AuthSession> {
         val registration: ApiResult<JSONObject> = request(
             method = "POST",
@@ -62,6 +76,7 @@ class AuroraSafeApi(context: Context) {
                 put("email", email)
                 put("password", password)
                 put("phone", phone)
+                put("age", age)
             },
             parser = { it }
         )

@@ -1,0 +1,71 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v1.0.1
+        required: true
+        type: string
+      api_base_url:
+        description: Deployed HTTPS API base URL, for example https://rakshax-api-sudhanshu.onrender.com
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Configure Firebase and release signing
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          API_BASE_URL: ${{ inputs.api_base_url }}
+        run: |
+          set -euo pipefail
+          for name in GOOGLE_SERVICES_JSON ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD API_BASE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required secret or workflow input: ${name}" >&2
+              exit 1
+            fi
+          done
+
+          printf '%s' "$GOOGLE_SERVICES_JSON" > Frontend/app/google-services.json
+          jq -e 'any(.client[]; .client_info.android_client_info.package_name == "com.rakshax.app" and any(.oauth_client[]?; .client_type == 3))' Frontend/app/google-services.json >/dev/null
+          printf 'AURORA_SAFE_BASE_URL=%s\n' "$API_BASE_URL" > Frontend/local.properties
+
+          KEYSTORE_PATH="$RUNNER_TEMP/rakshax-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          {
+            echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        working-directory: Frontend
+        run: ./gradlew :app:assembleRelease
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: RakshaX ${{ inputs.tag }}
+          generate_release_notes: true
+          files: Frontend/app/build/outputs/apk/release/app-release.apk

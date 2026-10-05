@@ -18,6 +18,7 @@ Backend/.venv/
 **/.kotlin/
 local.properties
 **/local.properties
+Frontend/app/google-services.json
 *.iml
 *.apk
 *.aab

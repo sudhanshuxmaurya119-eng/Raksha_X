@@ -34,3 +34,24 @@ cd Frontend
 ```
 
 The repository intentionally excludes local secrets, Firebase configuration, Google Maps keys, Gradle caches, IDE metadata, generated build output, backend databases, and APK files.
+
+## Deployment
+
+### FastAPI on Render
+
+1. Push this repository to GitHub and choose **New + > Blueprint** in Render.
+2. Connect this repository and apply `render.yaml`.
+3. Enter a production PostgreSQL `DATABASE_URL` and set `DATABASE_SSL_REQUIRED` for that provider. Do not use the local SQLite URL for production.
+4. The API health check is `/health`. Render's free web service may sleep when idle; provide a persistent production database because the API stores user and SOS data.
+5. Add `FIREBASE_SERVICE_ACCOUNT_JSON` in Render only if live FCM push delivery is needed.
+
+### Android APK on GitHub Releases
+
+Create these Actions repository secrets before running **Actions > Android Release > Run workflow**:
+
+- `GOOGLE_SERVICES_JSON`: the updated Firebase config for `com.rakshax.app`, with Google sign-in enabled and an OAuth web client included.
+- `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`: the release signing key and credentials. Keep a secure backup of the keystore; future updates must use the same key.
+
+Enter the Render API HTTPS URL and a new tag such as `v1.0.1` in the workflow inputs. The workflow builds a signed APK and publishes it as a GitHub Release asset. The downloadable link will be `https://github.com/sudhanshuxmaurya119-eng/Raksha_X/releases/latest/download/app-release.apk` after the first successful release.
+
+Never add `google-services.json`, signing keys, database URLs, or service-account credentials to Git. The local Firebase config is ignored by Git; Actions receives its copy from the repository secret.
