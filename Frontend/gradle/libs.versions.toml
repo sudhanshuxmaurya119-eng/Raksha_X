@@ -45,6 +45,7 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
+android-maps-utils = { group = "com.google.maps.android", name = "android-maps-utils", version = "3.9.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

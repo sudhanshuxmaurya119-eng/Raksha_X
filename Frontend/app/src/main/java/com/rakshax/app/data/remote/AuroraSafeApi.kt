@@ -14,6 +14,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import com.rakshax.app.data.model.FacilityType
+import com.rakshax.app.data.model.MapThresholdConfig
+import com.rakshax.app.data.model.RiskLevel
+import com.rakshax.app.data.model.SafetyArea
+import com.rakshax.app.data.model.SafetyCase
+import com.rakshax.app.data.model.SafetyFacility
 
 class AuroraSafeApi(context: Context) {
     private val secureStore = SecureStore(context)
@@ -213,6 +219,146 @@ class AuroraSafeApi(context: Context) {
             safetyScore = json.optDouble("safety_score", 0.0).toFloat(),
             avoidedZones = json.optInt("avoided_zones", 0),
             routeType = json.optString("route_type", "fallback_safest")
+        )
+    }
+
+    suspend fun fetchMapFacilities(
+        type: String? = null,
+        q: String? = null,
+        lat: Double? = null,
+        lng: Double? = null,
+        radiusKm: Double? = null
+    ): ApiResult<List<SafetyFacility>> {
+        val queryParams = mutableListOf<String>()
+        if (!type.isNullOrBlank()) queryParams.add("facility_type=$type")
+        if (!q.isNullOrBlank()) queryParams.add("q=$q")
+        if (lat != null && lng != null) {
+            queryParams.add("lat=$lat")
+            queryParams.add("lng=$lng")
+        }
+        if (radiusKm != null) queryParams.add("radius_km=$radiusKm")
+        val queryString = if (queryParams.isNotEmpty()) "?" + queryParams.joinToString("&") else ""
+        return requestArray(
+            method = "GET",
+            path = "/map/facilities$queryString"
+        ) { array ->
+            (0 until array.length()).map { index ->
+                val obj = array.getJSONObject(index)
+                val servicesArray = obj.optJSONArray("services")
+                val servicesList = if (servicesArray != null) {
+                    (0 until servicesArray.length()).map { servicesArray.getString(it) }
+                } else emptyList()
+                SafetyFacility(
+                    id = obj.optString("id", "fac-$index"),
+                    name = obj.optString("name"),
+                    type = FacilityType.fromString(obj.optString("facility_type")),
+                    address = obj.optString("address"),
+                    phone = obj.optString("phone").takeIf { it.isNotBlank() },
+                    latitude = obj.optDouble("latitude"),
+                    longitude = obj.optDouble("longitude"),
+                    services = servicesList,
+                    emergencyAvailable = obj.optBoolean("emergency_available", true),
+                    verified = obj.optBoolean("verified", true),
+                    area = obj.optString("area").takeIf { it.isNotBlank() },
+                    distanceKm = if (obj.has("distance_km") && !obj.isNull("distance_km")) obj.getDouble("distance_km").toFloat() else null
+                )
+            }
+        }
+    }
+
+    suspend fun fetchMapRiskAreas(timeRange: String = "all"): ApiResult<List<SafetyArea>> = requestArray(
+        method = "GET",
+        path = "/map/risk-areas?time_range=$timeRange"
+    ) { array ->
+        (0 until array.length()).map { index ->
+            val obj = array.getJSONObject(index)
+            SafetyArea(
+                id = obj.optString("id", "zone-$index"),
+                name = obj.optString("name"),
+                centerLat = obj.optDouble("center_lat"),
+                centerLng = obj.optDouble("center_lng"),
+                radiusMeters = obj.optDouble("radius_meters", 1500.0),
+                riskLevel = RiskLevel.fromString(obj.optString("risk_level", "LOW")),
+                registeredCases = obj.optInt("registered_cases", 0),
+                casesThisMonth = obj.optInt("cases_this_month", 0),
+                topCategory = obj.optString("top_category", "Public Safety"),
+                safetyScore = obj.optInt("safety_score", 85),
+                nearbyPoliceCount = obj.optInt("nearby_police_count", 0),
+                nearbyNgoCount = obj.optInt("nearby_ngo_count", 0),
+                nearbyHospitalCount = obj.optInt("nearby_hospital_count", 0)
+            )
+        }
+    }
+
+    suspend fun fetchMapCases(category: String? = null, timeRange: String = "all"): ApiResult<List<SafetyCase>> {
+        val queryParams = mutableListOf("time_range=$timeRange")
+        if (!category.isNullOrBlank()) queryParams.add("category=$category")
+        val query = "?" + queryParams.joinToString("&")
+        return requestArray(
+            method = "GET",
+            path = "/map/cases$query"
+        ) { array ->
+            (0 until array.length()).map { index ->
+                val obj = array.getJSONObject(index)
+                SafetyCase(
+                    caseId = obj.optString("case_id", "RX-$index"),
+                    latitude = obj.optDouble("latitude"),
+                    longitude = obj.optDouble("longitude"),
+                    category = obj.optString("category", "General Safety"),
+                    severity = obj.optString("severity", "Medium"),
+                    status = obj.optString("status", "Verified"),
+                    createdAt = obj.optString("created_at", ""),
+                    area = obj.optString("area", "")
+                )
+            }
+        }
+    }
+
+    suspend fun fetchNearbyFacilities(
+        lat: Double,
+        lng: Double,
+        type: String? = null,
+        limit: Int = 20
+    ): ApiResult<List<SafetyFacility>> {
+        val queryParams = mutableListOf("lat=$lat", "lng=$lng", "limit=$limit")
+        if (!type.isNullOrBlank()) queryParams.add("facility_type=$type")
+        val queryString = "?" + queryParams.joinToString("&")
+        return requestArray(
+            method = "GET",
+            path = "/map/nearby$queryString"
+        ) { array ->
+            (0 until array.length()).map { index ->
+                val obj = array.getJSONObject(index)
+                val servicesArray = obj.optJSONArray("services")
+                val servicesList = if (servicesArray != null) {
+                    (0 until servicesArray.length()).map { servicesArray.getString(it) }
+                } else emptyList()
+                SafetyFacility(
+                    id = obj.optString("id", "nearby-$index"),
+                    name = obj.optString("name"),
+                    type = FacilityType.fromString(obj.optString("facility_type")),
+                    address = obj.optString("address"),
+                    phone = obj.optString("phone").takeIf { it.isNotBlank() },
+                    latitude = obj.optDouble("latitude"),
+                    longitude = obj.optDouble("longitude"),
+                    services = servicesList,
+                    emergencyAvailable = obj.optBoolean("emergency_available", true),
+                    verified = obj.optBoolean("verified", true),
+                    area = obj.optString("area").takeIf { it.isNotBlank() },
+                    distanceKm = if (obj.has("distance_km") && !obj.isNull("distance_km")) obj.getDouble("distance_km").toFloat() else null
+                )
+            }
+        }
+    }
+
+    suspend fun fetchMapConfig(): ApiResult<MapThresholdConfig> = request(
+        method = "GET",
+        path = "/map/config"
+    ) { json ->
+        MapThresholdConfig(
+            lowMaxCases = json.optInt("low_max_cases", 5),
+            mediumMaxCases = json.optInt("medium_max_cases", 15),
+            highMinCases = json.optInt("high_min_cases", 16)
         )
     }
 
