@@ -1,6 +1,6 @@
 # RakshaX
 
-RakshaX is a personal-safety platform that connects an ESP32-C3 emergency button over BLE with live location, trusted-contact escalation, safety intelligence, and emergency notifications.
+RakshaX is a personal-safety platform that connects an ESP32 emergency button over BLE with live location, trusted-contact escalation, safety intelligence, and emergency notifications.
 
 The repository is organized into two application layers:
 
