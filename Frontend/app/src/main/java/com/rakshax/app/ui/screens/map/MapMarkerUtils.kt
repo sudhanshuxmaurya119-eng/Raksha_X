@@ -98,17 +98,17 @@ object MapMarkerUtils {
 
         // Translucent background
         paint.color = AndroidColor.argb(80, AndroidColor.red(primaryColor), AndroidColor.green(primaryColor), AndroidColor.blue(primaryColor))
-        canvas.drawCircle(center, center - 2 * density, paint)
+        canvas.drawCircle(center, center, center - 2 * density, paint)
 
         // Solid circular badge
         paint.color = primaryColor
-        canvas.drawCircle(center, center - 6 * density, paint)
+        canvas.drawCircle(center, center, center - 6 * density, paint)
 
         // White ring
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 2.5f * density
         paint.color = AndroidColor.WHITE
-        canvas.drawCircle(center, center - 6 * density, paint)
+        canvas.drawCircle(center, center, center - 6 * density, paint)
 
         // Count text
         paint.style = Paint.Style.FILL
