@@ -13,6 +13,7 @@ data class SosState(
     val locationAddress: String = "Connaught Place, Central Delhi",
     val timestamp: String = "Just now",
     val acknowledgedContactName: String? = "Rahul Sharma (Brother)",
+    val calledContactName: String? = null,
     val pendingContactsCount: Int = 1,
     val escalationStage: Int = 1,
     val backendStatus: String = "DEMO",

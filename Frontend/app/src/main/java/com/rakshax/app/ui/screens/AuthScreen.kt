@@ -1,5 +1,8 @@
 package com.rakshax.app.ui.screens
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -23,24 +27,168 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rakshax.app.ui.theme.*
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.FirebaseException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun AuthScreen(
     onAuthSuccess: () -> Unit,
-    onAuthSubmit: suspend (isRegister: Boolean, name: String, email: String, phone: String, password: String) -> String? =
-        { _, _, _, _, _ -> null }
+    onAuthSubmit: suspend (
+        isRegister: Boolean,
+        name: String,
+        email: String,
+        phone: String,
+        password: String,
+        age: Int,
+        usePhoneLogin: Boolean
+    ) -> String? = { _, _, _, _, _, _, _ -> null },
+    onGoogleAuth: suspend (firebaseIdToken: String) -> String? = { "Google sign-in is unavailable." }
 ) {
     var isRegisterTab by remember { mutableStateOf(false) }
+    var usePhoneLogin by remember { mutableStateOf(false) }
 
-    var name by remember { mutableStateOf("Aarav Sharma") }
-    var email by remember { mutableStateOf("aarav.sharma@rakshax.org") }
-    var phone by remember { mutableStateOf("+91 98765 43210") }
-    var password by remember { mutableStateOf("RakshaSafe2026!") }
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var otpCode by remember { mutableStateOf("") }
+    var phoneVerificationId by remember { mutableStateOf<String?>(null) }
+    var phoneResendToken by remember { mutableStateOf<PhoneAuthProvider.ForceResendingToken?>(null) }
+    var isOtpSent by remember { mutableStateOf(false) }
+    var age by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val firebaseAuth = remember { FirebaseAuth.getInstance() }
+
+    fun normalizeIndianPhone(rawPhone: String): String {
+        val trimmed = rawPhone.trim()
+        if (trimmed.startsWith("+")) return trimmed.filterIndexed { index, char ->
+            index == 0 || char.isDigit()
+        }
+        val digits = trimmed.filter(Char::isDigit)
+        return if (digits.length == 10) "+91$digits" else "+$digits"
+    }
+
+    fun resetPhoneOtp() {
+        otpCode = ""
+        phoneVerificationId = null
+        phoneResendToken = null
+        isOtpSent = false
+    }
+
+    fun signInWithPhoneCredential(credential: PhoneAuthCredential) {
+        scope.launch {
+            isSubmitting = true
+            errorMessage = try {
+                val user = firebaseAuth
+                    .signInWithCredential(credential)
+                    .await()
+                    .user
+                    ?: throw IllegalStateException("Firebase did not return a user.")
+                val firebaseIdToken = user.getIdToken(true).await().token
+                    ?: throw IllegalStateException("Firebase did not return an ID token.")
+                onGoogleAuth(firebaseIdToken)
+            } catch (error: Exception) {
+                error.localizedMessage ?: "Phone sign-in failed."
+            }
+            isSubmitting = false
+            if (errorMessage == null) onAuthSuccess()
+        }
+    }
+
+    fun requestPhoneOtp(forceResend: Boolean = false) {
+        val activity = context as? Activity
+        if (activity == null) {
+            errorMessage = "Phone sign-in needs an active Android screen."
+            return
+        }
+        val normalizedPhone = normalizeIndianPhone(phone)
+        if (normalizedPhone.length < 11) {
+            errorMessage = "Enter a valid phone number with country code."
+            return
+        }
+
+        isSubmitting = true
+        errorMessage = null
+        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                signInWithPhoneCredential(credential)
+            }
+
+            override fun onVerificationFailed(error: FirebaseException) {
+                isSubmitting = false
+                errorMessage = error.localizedMessage ?: "Could not send the verification code."
+            }
+
+            override fun onCodeSent(
+                verificationId: String,
+                token: PhoneAuthProvider.ForceResendingToken
+            ) {
+                phoneVerificationId = verificationId
+                phoneResendToken = token
+                isOtpSent = true
+                isSubmitting = false
+                errorMessage = null
+            }
+        }
+
+        val optionsBuilder = PhoneAuthOptions.newBuilder(firebaseAuth)
+            .setPhoneNumber(normalizedPhone)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(activity)
+            .setCallbacks(callbacks)
+        if (forceResend) {
+            phoneResendToken?.let(optionsBuilder::setForceResendingToken)
+        }
+        PhoneAuthProvider.verifyPhoneNumber(optionsBuilder.build())
+    }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            try {
+                val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    .getResult(com.google.android.gms.common.api.ApiException::class.java)
+                val googleIdToken = account.idToken
+                    ?: throw IllegalStateException("Google did not return an ID token.")
+                scope.launch {
+                    isSubmitting = true
+                    errorMessage = try {
+                        val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
+                        val user = firebaseAuth
+                            .signInWithCredential(credential)
+                            .await()
+                            .user
+                            ?: throw IllegalStateException("Firebase did not return a user.")
+                        val firebaseIdToken = user.getIdToken(true).await().token
+                            ?: throw IllegalStateException("Firebase did not return an ID token.")
+                        onGoogleAuth(firebaseIdToken)
+                    } catch (error: Exception) {
+                        error.localizedMessage ?: "Google sign-in failed."
+                    }
+                    isSubmitting = false
+                    if (errorMessage == null) onAuthSuccess()
+                }
+            } catch (error: Exception) {
+                errorMessage = error.localizedMessage ?: "Google sign-in failed."
+            }
+        } else {
+            errorMessage = null
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -102,7 +250,11 @@ fun AuthScreen(
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (!isRegisterTab) SurfaceElevated else Color.Transparent)
-                    .clickable { isRegisterTab = false }
+                    .clickable {
+                        isRegisterTab = false
+                        resetPhoneOtp()
+                        errorMessage = null
+                    }
                     .padding(vertical = 10.dp)
             ) {
                 Text(
@@ -119,7 +271,12 @@ fun AuthScreen(
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isRegisterTab) SurfaceElevated else Color.Transparent)
-                    .clickable { isRegisterTab = true }
+                    .clickable {
+                        isRegisterTab = true
+                        usePhoneLogin = false
+                        resetPhoneOtp()
+                        errorMessage = null
+                    }
                     .padding(vertical = 10.dp)
             ) {
                 Text(
@@ -132,6 +289,42 @@ fun AuthScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        if (!isRegisterTab) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SurfaceDark)
+                    .padding(4.dp)
+            ) {
+                listOf("Email", "Phone").forEachIndexed { index, label ->
+                    val selected = usePhoneLogin == (index == 1)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (selected) SurfaceElevated else Color.Transparent)
+                            .clickable {
+                                usePhoneLogin = index == 1
+                                resetPhoneOtp()
+                                errorMessage = null
+                            }
+                            .padding(vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (selected) TextPrimary else TextSecondary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
         // Form Fields
         if (isRegisterTab) {
@@ -169,51 +362,124 @@ fun AuthScreen(
             )
 
             Spacer(modifier = Modifier.height(14.dp))
+
+            OutlinedTextField(
+                value = age,
+                onValueChange = { age = it.filter(Char::isDigit).take(3) },
+                label = { Text("Age") },
+                leadingIcon = { Icon(Icons.Default.Cake, contentDescription = null, tint = TextSecondary) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AccentBlue,
+                    unfocusedBorderColor = SurfaceBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
         }
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email Address") },
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = TextSecondary) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue,
-                unfocusedBorderColor = SurfaceBorder,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary
+        if (isRegisterTab || !usePhoneLogin) {
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email Address") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = TextSecondary) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AccentBlue,
+                    unfocusedBorderColor = SurfaceBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
             )
-        )
 
-        Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+        }
 
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = TextSecondary) },
-            trailingIcon = {
-                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                    Icon(
-                        imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = "Toggle password",
-                        tint = TextSecondary
+        if (!isRegisterTab && usePhoneLogin) {
+            OutlinedTextField(
+                value = phone,
+                onValueChange = {
+                    phone = it
+                    resetPhoneOtp()
+                },
+                label = { Text("Phone Number") },
+                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = TextSecondary) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AccentBlue,
+                    unfocusedBorderColor = SurfaceBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (isOtpSent) {
+                OutlinedTextField(
+                    value = otpCode,
+                    onValueChange = { otpCode = it.filter(Char::isDigit).take(6) },
+                    label = { Text("Verification Code") },
+                    leadingIcon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = TextSecondary) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentBlue,
+                        unfocusedBorderColor = SurfaceBorder,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
                     )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = { requestPhoneOtp(forceResend = true) },
+                    enabled = !isSubmitting && phoneResendToken != null,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Resend code", color = TextSecondary, fontSize = 12.sp)
                 }
-            },
-            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue,
-                unfocusedBorderColor = SurfaceBorder,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary
+            }
+        }
+
+        if (isRegisterTab || !usePhoneLogin) {
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = TextSecondary) },
+                trailingIcon = {
+                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                        Icon(
+                            imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = "Toggle password",
+                            tint = TextSecondary
+                        )
+                    }
+                },
+                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AccentBlue,
+                    unfocusedBorderColor = SurfaceBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
             )
-        )
+        }
 
         Spacer(modifier = Modifier.height(26.dp))
 
@@ -229,9 +495,40 @@ fun AuthScreen(
 
         Button(
             onClick = {
+                val enteredAge = age.toIntOrNull()
+                if (isRegisterTab && (enteredAge == null || enteredAge !in 1..120)) {
+                    errorMessage = "Enter a valid age between 1 and 120."
+                    return@Button
+                }
+                if (!isRegisterTab && usePhoneLogin && phone.isBlank()) {
+                    errorMessage = "Enter your phone number to continue."
+                    return@Button
+                }
+                if (!isRegisterTab && usePhoneLogin) {
+                    if (!isOtpSent) {
+                        requestPhoneOtp()
+                    } else {
+                        val verificationId = phoneVerificationId
+                        if (verificationId.isNullOrBlank() || otpCode.length < 6) {
+                            errorMessage = "Enter the 6-digit verification code."
+                            return@Button
+                        }
+                        val credential = PhoneAuthProvider.getCredential(verificationId, otpCode)
+                        signInWithPhoneCredential(credential)
+                    }
+                    return@Button
+                }
                 scope.launch {
                     isSubmitting = true
-                    errorMessage = onAuthSubmit(isRegisterTab, name, email, phone, password)
+                    errorMessage = onAuthSubmit(
+                        isRegisterTab,
+                        name,
+                        email,
+                        phone,
+                        password,
+                        enteredAge ?: 0,
+                        usePhoneLogin
+                    )
                     isSubmitting = false
                     if (errorMessage == null) onAuthSuccess()
                 }
@@ -247,7 +544,12 @@ fun AuthScreen(
                 .height(50.dp)
         ) {
             Text(
-                text = if (isRegisterTab) "CREATE ACCOUNT" else "SECURE SIGN IN",
+                text = when {
+                    isRegisterTab -> "CREATE ACCOUNT"
+                    usePhoneLogin && isOtpSent -> "VERIFY PHONE"
+                    usePhoneLogin -> "SEND PHONE OTP"
+                    else -> "SECURE SIGN IN"
+                },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
@@ -255,6 +557,37 @@ fun AuthScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = {
+                val webClientIdResource = context.resources.getIdentifier(
+                    "default_web_client_id",
+                    "string",
+                    context.packageName
+                )
+                if (webClientIdResource == 0) {
+                    errorMessage = "Firebase project rakshax-ec3c5 has no Google OAuth client. Enable Google sign-in, add this app's SHA-1/SHA-256, then replace google-services.json with the updated download."
+                } else {
+                    val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        .requestIdToken(context.getString(webClientIdResource))
+                        .requestEmail()
+                        .build()
+                    googleSignInLauncher.launch(GoogleSignIn.getClient(context, options).signInIntent)
+                }
+            },
+            enabled = !isSubmitting,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary)
+        ) {
+            Icon(Icons.Default.AccountCircle, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("CONTINUE WITH GMAIL", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedButton(
             onClick = onAuthSuccess,

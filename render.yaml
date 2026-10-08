@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: rakshax-api-sudhanshu
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: Backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rakshax-postgres
+          property: connectionString
+      - key: DATABASE_SSL_REQUIRED
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FIREBASE_PROJECT_ID
+        value: rakshax-ec3c5
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        value: ""
+      - key: GEMINI_API_KEY
+        value: ""
+      - key: NEWS_API_KEY
+        value: ""
+      - key: GNEWS_API_KEY
+        value: ""
+      - key: OPENWEATHER_API_KEY
+        value: ""
+
+databases:
+  - name: rakshax-postgres
+    databaseName: rakshax
+    user: rakshax
+    plan: free
+    region: singapore
+    ipAllowList: []

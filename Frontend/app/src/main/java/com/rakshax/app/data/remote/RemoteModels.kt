@@ -12,7 +12,9 @@ data class AuthSession(
     val token: String,
     val userId: String?,
     val username: String?,
-    val email: String?
+    val email: String?,
+    val phone: String?,
+    val age: Int?
 )
 
 data class RemoteSosResult(

@@ -6,7 +6,8 @@ import logging
 from config import settings
 from database import init_db, AsyncSessionLocal
 from routers import auth, incidents, safety, routes, sos, dashboard
-from routers import data_sources, saved_routes, notifications
+from routers import data_sources, saved_routes, notifications, safety_map
+from seed_facilities import seed_facilities_and_config
 from ml.risk_model import load_model
 
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +30,12 @@ async def lifespan(app: FastAPI):
             from seed_data import seed_incidents
             await seed_incidents()
             logger.info("Database seeded.")
+    
+    # Seed facilities and safety map config
+    try:
+        await seed_facilities_and_config()
+    except Exception as e:
+        logger.warning(f"Facilities seeding failed (non-fatal): {e}")
 
     # Load/train ML model
     logger.info("Loading risk model...")
@@ -92,6 +99,7 @@ app.include_router(dashboard.router,    prefix="/dashboard",    tags=["dashboard
 app.include_router(data_sources.router, prefix="/data-sources", tags=["data-sources"])
 app.include_router(saved_routes.router, prefix="/saved-routes", tags=["saved-routes"])
 app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+app.include_router(safety_map.router,    prefix="/map",          tags=["safety-map"])
 
 
 @app.get("/")

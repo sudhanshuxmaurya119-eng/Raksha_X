@@ -67,6 +67,34 @@ fun ProfileScreen(
             ?.isIgnoringBatteryOptimizations(context.packageName) == true
     }.getOrDefault(false)
 
+    var callPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CALL_PHONE
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val callPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        callPermissionGranted = granted
+    }
+
+    var smsPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.SEND_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        smsPermissionGranted = granted
+    }
+
     var escalationTimeoutSec by remember { mutableStateOf(45) }
     var audioAlarmOnSos by remember { mutableStateOf(true) }
     var backgroundBleMonitoring by remember {
@@ -152,6 +180,84 @@ fun ProfileScreen(
                         color = TextMuted,
                         fontSize = 12.sp
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // Appearance & Theme Mode Selection
+        SettingsSectionHeader(title = "APPEARANCE & THEME")
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = SurfaceDark,
+            border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                val currentTheme by ThemeManager.themeMode.collectAsState()
+                val context = LocalContext.current
+
+                Text(
+                    text = "Display Theme",
+                    color = TextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Choose your preferred interface appearance",
+                    color = TextSecondary,
+                    fontSize = 12.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(SurfaceElevated)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val options = listOf(
+                        Triple(AppThemeMode.SYSTEM, "System", Icons.Filled.BrightnessAuto),
+                        Triple(AppThemeMode.DARK, "Dark", Icons.Filled.DarkMode),
+                        Triple(AppThemeMode.LIGHT, "Light", Icons.Filled.LightMode)
+                    )
+
+                    options.forEach { (mode, label, icon) ->
+                        val isSelected = currentTheme == mode
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) EmergencyRed else Color.Transparent)
+                                .clickable { ThemeManager.setThemeMode(context, mode) }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) Color.White else TextSecondary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = label,
+                                    color = if (isSelected) Color.White else TextSecondary,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -357,6 +463,56 @@ fun ProfileScreen(
                     if (notificationsGranted) "READY" else "MISSING",
                     if (notificationsGranted) SafeGreen else WarningAmber
                 )
+                Divider(color = SurfaceBorder, modifier = Modifier.padding(vertical = 8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Direct SOS Phone Call", color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = if (callPermissionGranted) "Immediate direct calling enabled" else "Dialer confirmation (Tap to allow direct call)",
+                            color = TextMuted,
+                            fontSize = 10.sp
+                        )
+                    }
+                    if (!callPermissionGranted) {
+                        TextButton(
+                            onClick = { callPermissionLauncher.launch(Manifest.permission.CALL_PHONE) },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("GRANT", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Text("GRANTED", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Divider(color = SurfaceBorder, modifier = Modifier.padding(vertical = 8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Emergency Confirmation SMS", color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = if (smsPermissionGranted) "Background confirmation SMS enabled" else "Composer fallback (Tap to allow auto-send)",
+                            color = TextMuted,
+                            fontSize = 10.sp
+                        )
+                    }
+                    if (!smsPermissionGranted) {
+                        TextButton(
+                            onClick = { smsPermissionLauncher.launch(Manifest.permission.SEND_SMS) },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("GRANT", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Text("GRANTED", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
                 Divider(color = SurfaceBorder, modifier = Modifier.padding(vertical = 8.dp))
                 PermissionStatusRow("Emergency Call 112 Intent", "READY", SafeGreen)
             }

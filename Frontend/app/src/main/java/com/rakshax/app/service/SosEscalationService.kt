@@ -23,6 +23,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
 import kotlin.coroutines.coroutineContext
+import android.app.ForegroundServiceStartNotAllowedException
 
 /** Keeps the three-stage trusted-circle timer alive while the UI is backgrounded. */
 class SosEscalationService : Service() {
@@ -67,7 +68,17 @@ class SosEscalationService : Service() {
             if (latest.escalationDeadlineMillis != deadline) continue
 
             MockDataRepository.advanceEscalation()
+            com.rakshax.app.data.sos.EmergencyCallHelper.initiateEmergencyCall(applicationContext, force = true)
             val updated = MockDataRepository.sosState.value
+            val targetContact = com.rakshax.app.data.sos.EmergencyCallHelper.resolveTargetContact()
+            if (targetContact != null) {
+                com.rakshax.app.data.sos.EmergencySmsHelper.sendEmergencySms(
+                    context = applicationContext,
+                    eventId = updated.backendEventId ?: "sos_${System.currentTimeMillis()}",
+                    locationText = updated.locationAddress,
+                    targetContacts = listOf(targetContact)
+                )
+            }
             updateNotification(
                 if (updated.escalationStage >= 3) {
                     "Priority 3 notified. Awaiting trusted-circle response."
@@ -143,11 +154,27 @@ class SosEscalationService : Service() {
         const val ACTION_STOP = "com.rakshax.app.action.STOP_SOS_ESCALATION"
 
         fun start(context: Context) {
-            val intent = Intent(context, SosEscalationService::class.java).setAction(ACTION_START)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ContextCompat.startForegroundService(context, intent)
-            } else {
-                context.startService(intent)
+            val intent = Intent(context, SosEscalationService::class.java)
+                .setAction(ACTION_START)
+
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    ContextCompat.startForegroundService(context, intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: ForegroundServiceStartNotAllowedException) {
+                android.util.Log.e(
+                    "RakshaX_SOS",
+                    "Android blocked SOS escalation foreground service",
+                    e
+                )
+            } catch (e: SecurityException) {
+                android.util.Log.e(
+                    "RakshaX_SOS",
+                    "Unable to start SOS escalation service",
+                    e
+                )
             }
         }
 

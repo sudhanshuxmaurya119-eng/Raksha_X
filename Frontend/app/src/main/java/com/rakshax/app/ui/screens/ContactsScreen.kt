@@ -1,6 +1,11 @@
 package com.rakshax.app.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,23 +13,47 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.rakshax.app.data.model.Contact
 import com.rakshax.app.data.repository.MockDataRepository
+import com.rakshax.app.data.sos.EmergencyCallHelper
 import com.rakshax.app.ui.components.ContactCard
 import com.rakshax.app.ui.theme.*
 
 @Composable
 fun ContactsScreen() {
     val contacts by MockDataRepository.contacts.collectAsState()
+    val context = LocalContext.current
+
+    var emergencyPermissionsGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CALL_PHONE
+            ) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.SEND_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val emergencyPermissionsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        emergencyPermissionsGranted = results.values.all { it }
+    }
 
     var showAddDialog by remember { mutableStateOf(false) }
     var editingContact by remember { mutableStateOf<Contact?>(null) }
@@ -58,11 +87,53 @@ fun ContactsScreen() {
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Configured contacts will receive instant SMS, WhatsApp, and push alerts sequentially based on priority level during an SOS event.",
+                text = "Configured contacts will receive an immediate phone call and automated alerts sequentially during an SOS event triggered by the ESP32 device.",
                 color = TextSecondary,
                 fontSize = 12.sp,
                 lineHeight = 17.sp
             )
+
+            if (!emergencyPermissionsGranted) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = WarningAmber.copy(alpha = 0.12f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, WarningAmber.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Emergency Call & SMS Permissions",
+                                color = WarningAmber,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Grant permissions so SOS triggers an instant direct call and sends confirmation SMS links.",
+                                color = TextSecondary,
+                                fontSize = 11.sp
+                            )
+                        }
+                        TextButton(
+                            onClick = {
+                                emergencyPermissionsLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.CALL_PHONE,
+                                        Manifest.permission.SEND_SMS
+                                    )
+                                )
+                            }
+                        ) {
+                            Text("ALLOW", color = SafeGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -87,7 +158,8 @@ fun ContactsScreen() {
                             contact = contact,
                             onToggleEnabled = { MockDataRepository.toggleContactEnabled(it) },
                             onEdit = { editingContact = it },
-                            onDelete = { MockDataRepository.deleteContact(it) }
+                            onDelete = { MockDataRepository.deleteContact(it) },
+                            onCall = { EmergencyCallHelper.callContact(context, it) }
                         )
                     }
                 }

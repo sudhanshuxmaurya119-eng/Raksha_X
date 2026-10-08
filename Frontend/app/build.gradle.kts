@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
 }
 
 import java.util.Properties
@@ -13,8 +14,14 @@ val localProperties = Properties().apply {
     }
 }
 
-val auroraSafeBaseUrl = localProperties.getProperty("AURORA_SAFE_BASE_URL", "http://10.0.2.2:8000")
+val auroraSafeBaseUrl = providers.environmentVariable("AURORA_SAFE_BASE_URL").orNull
+    ?: localProperties.getProperty("AURORA_SAFE_BASE_URL")
+    ?: "https://rakshax-api-sudhanshu.onrender.com"
 val googleMapsApiKey = localProperties.getProperty("MAPS_API_KEY", "")
+val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
 
 fun quoteBuildConfig(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
@@ -39,16 +46,29 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (!releaseKeystorePath.isNullOrBlank()) {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (!releaseKeystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-            applicationIdSuffix = ".debug"
             isDebuggable = true
             manifestPlaceholders["ALLOW_CLEARTEXT"] = "true"
         }
@@ -87,8 +107,11 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.okhttp)
     implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
     implementation(libs.firebase.messaging)
+    implementation(libs.play.services.auth)
     implementation(libs.play.services.maps)
+    implementation(libs.android.maps.utils)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -1,7 +1,8 @@
 import logging
 import json
-import os
 from typing import Iterable
+
+from config import settings
 
 logger = logging.getLogger(__name__)
 _firebase_ready = False
@@ -11,7 +12,7 @@ def _ensure_firebase():
     global _firebase_ready
     if _firebase_ready:
         return True
-    service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
+    service_account_json = settings.FIREBASE_SERVICE_ACCOUNT_JSON.strip()
     if not service_account_json:
         logger.info("FCM disabled: FIREBASE_SERVICE_ACCOUNT_JSON is not configured")
         return False

@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     NEWS_API_KEY: str = ""
     GNEWS_API_KEY: str = ""
     OPENWEATHER_API_KEY: str = ""
+    FIREBASE_SERVICE_ACCOUNT_JSON: str = ""
+    FIREBASE_PROJECT_ID: str = "rakshax-ec3c5"
 
     # Target Region - Delhi NCR
     DEFAULT_CITY: str = "Delhi"
