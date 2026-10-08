@@ -36,19 +36,23 @@ fun ContactsScreen() {
     val contacts by MockDataRepository.contacts.collectAsState()
     val context = LocalContext.current
 
-    var callPermissionGranted by remember {
+    var emergencyPermissionsGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.CALL_PHONE
+            ) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.SEND_SMS
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
 
-    val callPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        callPermissionGranted = granted
+    val emergencyPermissionsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        emergencyPermissionsGranted = results.values.all { it }
     }
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -89,7 +93,7 @@ fun ContactsScreen() {
                 lineHeight = 17.sp
             )
 
-            if (!callPermissionGranted) {
+            if (!emergencyPermissionsGranted) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -104,19 +108,26 @@ fun ContactsScreen() {
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Direct Calling Permission",
+                                text = "Emergency Call & SMS Permissions",
                                 color = WarningAmber,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Grant permission so SOS triggers an instant direct call without manual dialer confirmation.",
+                                text = "Grant permissions so SOS triggers an instant direct call and sends confirmation SMS links.",
                                 color = TextSecondary,
                                 fontSize = 11.sp
                             )
                         }
                         TextButton(
-                            onClick = { callPermissionLauncher.launch(Manifest.permission.CALL_PHONE) }
+                            onClick = {
+                                emergencyPermissionsLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.CALL_PHONE,
+                                        Manifest.permission.SEND_SMS
+                                    )
+                                )
+                            }
                         ) {
                             Text("ALLOW", color = SafeGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }

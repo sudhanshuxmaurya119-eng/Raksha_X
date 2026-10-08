@@ -70,6 +70,15 @@ class SosEscalationService : Service() {
             MockDataRepository.advanceEscalation()
             com.rakshax.app.data.sos.EmergencyCallHelper.initiateEmergencyCall(applicationContext, force = true)
             val updated = MockDataRepository.sosState.value
+            val targetContact = com.rakshax.app.data.sos.EmergencyCallHelper.resolveTargetContact()
+            if (targetContact != null) {
+                com.rakshax.app.data.sos.EmergencySmsHelper.sendEmergencySms(
+                    context = applicationContext,
+                    eventId = updated.backendEventId ?: "sos_${System.currentTimeMillis()}",
+                    locationText = updated.locationAddress,
+                    targetContacts = listOf(targetContact)
+                )
+            }
             updateNotification(
                 if (updated.escalationStage >= 3) {
                     "Priority 3 notified. Awaiting trusted-circle response."

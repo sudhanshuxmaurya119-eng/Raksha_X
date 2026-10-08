@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.rakshax.app.data.repository.MockDataRepository
 import com.rakshax.app.data.remote.AuroraSafeRepository
 import com.rakshax.app.data.sos.EmergencyCallHelper
+import com.rakshax.app.data.sos.EmergencySmsHelper
 import com.rakshax.app.service.SosEscalationService
 import com.rakshax.app.ui.components.Call112Button
 import com.rakshax.app.ui.theme.*
@@ -268,8 +269,14 @@ fun SosStatusScreen(auroraSafeRepository: AuroraSafeRepository) {
         } else {
             Button(
                 onClick = {
-                    MockDataRepository.triggerSos("In-App Test Trigger", backendStatus = "DEMO")
+                    val testEventId = "test_${System.currentTimeMillis()}"
+                    MockDataRepository.triggerSos("In-App Test Trigger", backendStatus = "DEMO", backendEventId = testEventId)
                     EmergencyCallHelper.initiateEmergencyCall(context, force = true)
+                    EmergencySmsHelper.sendEmergencySms(
+                        context = context,
+                        eventId = testEventId,
+                        locationText = "Connaught Place, New Delhi"
+                    )
                     SosEscalationService.start(context)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed),

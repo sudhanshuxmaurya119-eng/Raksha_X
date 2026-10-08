@@ -20,6 +20,7 @@ import com.rakshax.app.data.location.LocationRepository
 import com.rakshax.app.data.remote.AuroraSafeRepository
 import com.rakshax.app.data.repository.MockDataRepository
 import com.rakshax.app.data.sos.EmergencyCallHelper
+import com.rakshax.app.data.sos.EmergencySmsHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -76,20 +77,22 @@ class BleSosListenerService : Service() {
 
     private fun handleSosSignal(source: String) {
         acquireWakeLock()
-        updateNotification("Emergency signal received. Calling contact & capturing location…")
+        updateNotification("Emergency signal received. Calling priority-1 contact & capturing location…")
+        // Always call the priority-1 (stage 1) contact first
         EmergencyCallHelper.initiateEmergencyCall(applicationContext)
         serviceScope.launch {
             try {
                 val location = locationRepository.getCurrentLocation()
-                val contacts = MockDataRepository.contacts.value
-                    .filter { it.isEnabled }
-                    .map { it.name to it.phone }
+                val allContacts = MockDataRepository.contacts.value.filter { it.isEnabled }
+                val contacts = allContacts.map { it.name to it.phone }
+                val locationText = location?.let { "${it.latitude}, ${it.longitude}" } ?: "Location unavailable"
                 val result = auroraSafeRepository.triggerSos(
                     location = location,
-                    locationText = location?.let { "${it.latitude}, ${it.longitude}" } ?: "Location unavailable",
+                    locationText = locationText,
                     contacts = contacts,
                     userId = MockDataRepository.currentUser.value.id
                 )
+                val effectiveEventId = result.value?.eventId ?: "sos_${System.currentTimeMillis()}"
                 MockDataRepository.triggerSos(
                     source = source,
                     location = location,
@@ -97,12 +100,22 @@ class BleSosListenerService : Service() {
                     backendEventId = result.value?.eventId,
                     backendError = result.error
                 )
+                // Only SMS priority-1 contact initially; escalation sends to subsequent contacts
+                val priority1Contact = allContacts.minByOrNull { it.priority }
+                if (priority1Contact != null) {
+                    EmergencySmsHelper.sendEmergencySms(
+                        context = applicationContext,
+                        eventId = effectiveEventId,
+                        locationText = locationText,
+                        targetContacts = listOf(priority1Contact)
+                    )
+                }
                 SosEscalationService.start(applicationContext)
                 updateNotification(
                     if (location == null) {
-                        "SOS received. Location fix unavailable."
+                        "SOS received. Location fix unavailable. Awaiting ${priority1Contact?.name ?: "contact"} response…"
                     } else {
-                        "SOS active. Location captured."
+                        "SOS active. ${priority1Contact?.name ?: "Contact"} notified. Escalates in 45s if no response."
                     }
                 )
             } finally {

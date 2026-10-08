@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -196,6 +197,129 @@ async def acknowledge_sos(
         "contact_name": acknowledgement.contact_name,
         "acknowledged_at": acknowledgement.created_at.isoformat()
     }
+
+@router.get("/{event_id}/acknowledge", response_class=HTMLResponse)
+@router.get("/ack/{event_id}", response_class=HTMLResponse)
+async def acknowledge_sos_page(
+    event_id: str,
+    contact_name: Optional[str] = Query("Trusted Contact", alias="contact_name"),
+    contact: Optional[str] = Query(None, alias="contact"),
+    db: AsyncSession = Depends(get_db),
+):
+    effective_name = (contact or contact_name or "Trusted Contact").strip()
+    event = await db.get(SOSEvent, event_id)
+    
+    # Record acknowledgement if event exists
+    if event:
+        acknowledgement = SOSAcknowledgement(
+            event_id=event_id,
+            contact_name=effective_name
+        )
+        db.add(acknowledgement)
+        await db.commit()
+    
+    loc_display = event.location_text if (event and event.location_text) else "Location tracking active"
+    maps_btn = ""
+    if event and event.latitude and event.longitude:
+        maps_url = f"https://www.google.com/maps?q={event.latitude},{event.longitude}"
+        maps_btn = f'''
+        <a href="{maps_url}" target="_blank" style="display:inline-block; margin-top:16px; padding:12px 24px; background:#ef4444; color:#fff; text-decoration:none; border-radius:10px; font-weight:700; font-size:15px; box-shadow:0 4px 14px rgba(239,68,68,0.4);">
+            📍 Open Victim Location in Google Maps
+        </a>
+        '''
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RakshaX SOS Alert Confirmed</title>
+    <style>
+        body {{
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0f1d;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh;
+        }}
+        .card {{
+            background: #151d30;
+            border: 1px solid #10b981;
+            border-radius: 20px;
+            padding: 32px 24px;
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15);
+        }}
+        .badge {{
+            width: 64px;
+            height: 64px;
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 2px solid #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 20px auto;
+        }}
+        h1 {{
+            font-size: 22px;
+            font-weight: 800;
+            color: #10b981;
+            margin: 0 0 10px 0;
+            letter-spacing: 0.5px;
+        }}
+        p {{
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 8px 0;
+        }}
+        .contact-box {{
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 14px;
+            margin: 20px 0;
+            border: 1px solid #334155;
+            text-align: left;
+        }}
+        .contact-box b {{
+            color: #f1f5f9;
+        }}
+        .note {{
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 24px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="badge">✓</div>
+        <h1>SOS ALERT CONFIRMED</h1>
+        <p>Thank you, <b>{effective_name}</b>! Your confirmation has been received.</p>
+        <p>The victim's phone and trusted network have been notified that you are actively responding to this emergency.</p>
+        
+        <div class="contact-box">
+            <p><b>Event ID:</b> {event_id}</p>
+            <p><b>Last Reported Location:</b> {loc_display}</p>
+            <p><b>Status:</b> <span style="color:#10b981; font-weight:700;">RESPONDING / ACKNOWLEDGED</span></p>
+        </div>
+
+        {maps_btn}
+
+        <p class="note">RakshaX Emergency Lifeline • In extreme life-threatening danger, dial national emergency <b>112</b> immediately.</p>
+    </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content)
 
 @router.get("/{event_id}/status")
 async def get_sos_status(

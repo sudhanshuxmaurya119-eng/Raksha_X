@@ -81,6 +81,20 @@ fun ProfileScreen(
         callPermissionGranted = granted
     }
 
+    var smsPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.SEND_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        smsPermissionGranted = granted
+    }
+
     var escalationTimeoutSec by remember { mutableStateOf(45) }
     var audioAlarmOnSos by remember { mutableStateOf(true) }
     var backgroundBleMonitoring by remember {
@@ -466,6 +480,31 @@ fun ProfileScreen(
                     if (!callPermissionGranted) {
                         TextButton(
                             onClick = { callPermissionLauncher.launch(Manifest.permission.CALL_PHONE) },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("GRANT", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Text("GRANTED", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Divider(color = SurfaceBorder, modifier = Modifier.padding(vertical = 8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Emergency Confirmation SMS", color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = if (smsPermissionGranted) "Background confirmation SMS enabled" else "Composer fallback (Tap to allow auto-send)",
+                            color = TextMuted,
+                            fontSize = 10.sp
+                        )
+                    }
+                    if (!smsPermissionGranted) {
+                        TextButton(
+                            onClick = { smsPermissionLauncher.launch(Manifest.permission.SEND_SMS) },
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Text("GRANT", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)

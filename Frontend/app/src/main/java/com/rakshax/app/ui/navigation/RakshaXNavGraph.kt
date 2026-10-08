@@ -15,6 +15,7 @@ import com.rakshax.app.data.network.NetworkStatusMonitor
 import com.rakshax.app.data.remote.AuroraSafeRepository
 import com.rakshax.app.data.repository.MockDataRepository
 import com.rakshax.app.data.sos.EmergencyCallHelper
+import com.rakshax.app.data.sos.EmergencySmsHelper
 import com.rakshax.app.notification.FcmRegistration
 import com.rakshax.app.service.SosEscalationService
 import com.rakshax.app.ui.components.RakshaXBottomNav
@@ -152,18 +153,20 @@ fun RakshaXNavGraph(
                     locationRepository = locationRepository,
                     networkStatusMonitor = networkStatusMonitor,
                     onTriggerSos = { location: SosLocationPayload? ->
+                        val allContacts = MockDataRepository.contacts.value.filter { it.isEnabled }
+                        // Call priority-1 contact immediately
                         EmergencyCallHelper.initiateEmergencyCall(navController.context)
                         scope.launch {
-                            val contacts = MockDataRepository.contacts.value
-                                .filter { it.isEnabled }
-                                .map { it.name to it.phone }
+                            val contacts = allContacts.map { it.name to it.phone }
+                            val locationText = location?.let { "${it.latitude}, ${it.longitude}" }
+                                ?: "Location unavailable"
                             val result = auroraSafeRepository.triggerSos(
                                 location = location,
-                                locationText = location?.let { "${it.latitude}, ${it.longitude}" }
-                                    ?: "Location unavailable",
+                                locationText = locationText,
                                 contacts = contacts,
                                 userId = MockDataRepository.currentUser.value.id
                             )
+                            val effectiveEventId = result.value?.eventId ?: "sos_${System.currentTimeMillis()}"
                             MockDataRepository.triggerSos(
                                 source = "In-App Emergency Button",
                                 location = location,
@@ -171,6 +174,16 @@ fun RakshaXNavGraph(
                                 backendEventId = result.value?.eventId,
                                 backendError = result.error
                             )
+                            // Only SMS priority-1 contact now; escalation handles priority-2/3 after 45s
+                            val priority1Contact = allContacts.minByOrNull { it.priority }
+                            if (priority1Contact != null) {
+                                EmergencySmsHelper.sendEmergencySms(
+                                    context = navController.context,
+                                    eventId = effectiveEventId,
+                                    locationText = locationText,
+                                    targetContacts = listOf(priority1Contact)
+                                )
+                            }
                             SosEscalationService.start(navController.context)
                             navController.navigate(Screen.SosStatus.route)
                         }

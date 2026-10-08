@@ -307,7 +307,7 @@ fun SafetyMapScreen(
             query = searchQuery,
             onQueryChange = { viewModel.updateSearchQuery(it) },
             onFilterClick = { viewModel.toggleFilterSheet(true) },
-            onLayersClick = { viewModel.toggleLayersSheet(!isFilterSheetVisible) },
+            onLayersClick = { viewModel.toggleFilterSheet(true) },  // Layers also opens filter sheet
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
@@ -388,7 +388,7 @@ fun SafetyMapScreen(
             }
         }
 
-        // ===== BOTTOM: Status Bar =====
+        // ===== BOTTOM: Status Bar — drawn BEFORE sheets so sheets appear on top =====
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -431,14 +431,15 @@ fun SafetyMapScreen(
             }
         }
 
-        // ===== OVERLAYS: Selected Facility Card =====
+        // ===== OVERLAYS: Selected Facility Card — above status bar =====
         AnimatedVisibility(
             visible = selectedFacility != null,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 48.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 56.dp)
         ) {
             selectedFacility?.let { fac ->
                 FacilityDetailCard(
@@ -455,14 +456,15 @@ fun SafetyMapScreen(
             }
         }
 
-        // ===== OVERLAYS: Area Safety Report =====
+        // ===== OVERLAYS: Area Safety Report — above status bar =====
         AnimatedVisibility(
             visible = selectedArea != null,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 48.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 56.dp)
         ) {
             selectedArea?.let { area ->
                 AreaSafetyReportSheet(
@@ -472,12 +474,14 @@ fun SafetyMapScreen(
             }
         }
 
-        // ===== OVERLAYS: Nearby Sheet =====
+        // ===== OVERLAYS: Nearby Sheet — above status bar =====
         AnimatedVisibility(
             visible = isNearbySheetVisible,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
         ) {
             NearbyFacilitiesSheet(
                 facilities = displayedFacilities,
@@ -494,12 +498,14 @@ fun SafetyMapScreen(
             )
         }
 
-        // ===== OVERLAYS: Filter Sheet =====
+        // ===== OVERLAYS: Filter Sheet — drawn LAST so it appears on top of everything =====
         AnimatedVisibility(
             visible = isFilterSheetVisible,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
         ) {
             MapFilterBottomSheet(
                 filterState = filterState,

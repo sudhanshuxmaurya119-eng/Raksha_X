@@ -33,15 +33,22 @@ class MainActivity : ComponentActivity() {
     private lateinit var auroraSafeRepository: AuroraSafeRepository
     private lateinit var networkStatusMonitor: NetworkStatusMonitor
 
-    private val callPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { /* Permission result handled */ }
+    private val emergencyPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* Permission results handled */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val missingPermissions = mutableListOf<String>()
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-            callPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+            missingPermissions.add(Manifest.permission.CALL_PHONE)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            missingPermissions.add(Manifest.permission.SEND_SMS)
+        }
+        if (missingPermissions.isNotEmpty()) {
+            emergencyPermissionsLauncher.launch(missingPermissions.toTypedArray())
         }
         com.rakshax.app.ui.theme.ThemeManager.init(applicationContext)
         locationRepository = LocationRepository(applicationContext)
@@ -67,15 +74,16 @@ class MainActivity : ComponentActivity() {
             EmergencyCallHelper.initiateEmergencyCall(this@MainActivity)
             lifecycleScope.launch {
                 val location = locationRepository.getCurrentLocation()
-                val contacts = MockDataRepository.contacts.value
-                    .filter { it.isEnabled }
-                    .map { it.name to it.phone }
+                val allContacts = MockDataRepository.contacts.value.filter { it.isEnabled }
+                val contacts = allContacts.map { it.name to it.phone }
+                val locationText = location?.let { "${it.latitude}, ${it.longitude}" } ?: "Location unavailable"
                 val result = auroraSafeRepository.triggerSos(
                     location = location,
-                    locationText = location?.let { "${it.latitude}, ${it.longitude}" } ?: "Location unavailable",
+                    locationText = locationText,
                     contacts = contacts,
                     userId = MockDataRepository.currentUser.value.id
                 )
+                val effectiveEventId = result.value?.eventId ?: "sos_${System.currentTimeMillis()}"
                 MockDataRepository.triggerSos(
                     source = source,
                     location = location,
@@ -83,6 +91,16 @@ class MainActivity : ComponentActivity() {
                     backendEventId = result.value?.eventId,
                     backendError = result.error
                 )
+                // Only SMS priority-1 contact initially; after 45s escalation handles the rest
+                val priority1Contact = allContacts.minByOrNull { it.priority }
+                if (priority1Contact != null) {
+                    com.rakshax.app.data.sos.EmergencySmsHelper.sendEmergencySms(
+                        context = applicationContext,
+                        eventId = effectiveEventId,
+                        locationText = locationText,
+                        targetContacts = listOf(priority1Contact)
+                    )
+                }
                 SosEscalationService.start(this@MainActivity)
             }
         }
