@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import com.rakshax.app.data.repository.MockDataRepository
 import com.rakshax.app.data.remote.AuroraSafeRepository
+import com.rakshax.app.data.sos.EmergencyCallHelper
 import com.rakshax.app.service.SosEscalationService
 import com.rakshax.app.ui.components.Call112Button
 import com.rakshax.app.ui.theme.*
@@ -163,7 +164,22 @@ fun SosStatusScreen(auroraSafeRepository: AuroraSafeRepository) {
 
                 StepConnector()
 
-                // Step 3: Backend & FCM
+                // Step 3: Emergency Phone Call
+                val calledContact = sosState.calledContactName
+                PipelineStepRow(
+                    title = if (calledContact != null) "Call Placed to $calledContact" else "Direct Call to Priority Contact",
+                    subtitle = if (calledContact != null) {
+                        "Emergency call dispatched to $calledContact directly"
+                    } else {
+                        "Direct calling dispatched to emergency contact"
+                    },
+                    isComplete = calledContact != null || sosState.alertSent,
+                    isPending = false
+                )
+
+                StepConnector()
+
+                // Step 4: Backend & FCM
                 PipelineStepRow(
                     title = "AuroraSafe Incident Logged & Alert Sent",
                     subtitle = when (sosState.backendStatus) {
@@ -253,6 +269,7 @@ fun SosStatusScreen(auroraSafeRepository: AuroraSafeRepository) {
             Button(
                 onClick = {
                     MockDataRepository.triggerSos("In-App Test Trigger", backendStatus = "DEMO")
+                    EmergencyCallHelper.initiateEmergencyCall(context, force = true)
                     SosEscalationService.start(context)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = EmergencyRed),
@@ -265,6 +282,42 @@ fun SosStatusScreen(auroraSafeRepository: AuroraSafeRepository) {
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        val primaryContact = remember(contacts) {
+            contacts.filter { it.isEnabled }.minByOrNull { it.priority }
+        }
+        if (primaryContact != null) {
+            Button(
+                onClick = {
+                    EmergencyCallHelper.callContact(context, primaryContact)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = SafeGreen),
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(vertical = 14.dp, horizontal = 20.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Call Contact",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "CALL ${primaryContact.name.uppercase()} (${primaryContact.phone})",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
         }
 
         // Emergency Call 112

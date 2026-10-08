@@ -280,9 +280,15 @@ object MockDataRepository {
         }
     }
 
+    fun recordEmergencyCall(contactName: String) {
+        _sosState.update {
+            it.copy(calledContactName = contactName)
+        }
+    }
+
     fun cancelSos() {
         _sosState.update {
-            it.copy(isActive = false, escalationDeadlineMillis = null)
+            it.copy(isActive = false, escalationDeadlineMillis = null, calledContactName = null)
         }
     }
 }

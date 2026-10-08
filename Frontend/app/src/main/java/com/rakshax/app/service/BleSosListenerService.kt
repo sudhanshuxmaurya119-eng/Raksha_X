@@ -19,6 +19,7 @@ import com.rakshax.app.data.ble.BleServicePreferences
 import com.rakshax.app.data.location.LocationRepository
 import com.rakshax.app.data.remote.AuroraSafeRepository
 import com.rakshax.app.data.repository.MockDataRepository
+import com.rakshax.app.data.sos.EmergencyCallHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -75,7 +76,8 @@ class BleSosListenerService : Service() {
 
     private fun handleSosSignal(source: String) {
         acquireWakeLock()
-        updateNotification("Emergency signal received. Capturing location…")
+        updateNotification("Emergency signal received. Calling contact & capturing location…")
+        EmergencyCallHelper.initiateEmergencyCall(applicationContext)
         serviceScope.launch {
             try {
                 val location = locationRepository.getCurrentLocation()

@@ -14,6 +14,7 @@ import com.rakshax.app.data.location.SosLocationPayload
 import com.rakshax.app.data.network.NetworkStatusMonitor
 import com.rakshax.app.data.remote.AuroraSafeRepository
 import com.rakshax.app.data.repository.MockDataRepository
+import com.rakshax.app.data.sos.EmergencyCallHelper
 import com.rakshax.app.notification.FcmRegistration
 import com.rakshax.app.service.SosEscalationService
 import com.rakshax.app.ui.components.RakshaXBottomNav
@@ -151,6 +152,7 @@ fun RakshaXNavGraph(
                     locationRepository = locationRepository,
                     networkStatusMonitor = networkStatusMonitor,
                     onTriggerSos = { location: SosLocationPayload? ->
+                        EmergencyCallHelper.initiateEmergencyCall(navController.context)
                         scope.launch {
                             val contacts = MockDataRepository.contacts.value
                                 .filter { it.isEnabled }

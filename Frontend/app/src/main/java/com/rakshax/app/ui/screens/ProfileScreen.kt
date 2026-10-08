@@ -67,6 +67,20 @@ fun ProfileScreen(
             ?.isIgnoringBatteryOptimizations(context.packageName) == true
     }.getOrDefault(false)
 
+    var callPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CALL_PHONE
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val callPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        callPermissionGranted = granted
+    }
+
     var escalationTimeoutSec by remember { mutableStateOf(45) }
     var audioAlarmOnSos by remember { mutableStateOf(true) }
     var backgroundBleMonitoring by remember {
@@ -435,6 +449,31 @@ fun ProfileScreen(
                     if (notificationsGranted) "READY" else "MISSING",
                     if (notificationsGranted) SafeGreen else WarningAmber
                 )
+                Divider(color = SurfaceBorder, modifier = Modifier.padding(vertical = 8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Direct SOS Phone Call", color = TextSecondary, fontSize = 12.sp)
+                        Text(
+                            text = if (callPermissionGranted) "Immediate direct calling enabled" else "Dialer confirmation (Tap to allow direct call)",
+                            color = TextMuted,
+                            fontSize = 10.sp
+                        )
+                    }
+                    if (!callPermissionGranted) {
+                        TextButton(
+                            onClick = { callPermissionLauncher.launch(Manifest.permission.CALL_PHONE) },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text("GRANT", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Text("GRANTED", color = SafeGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
                 Divider(color = SurfaceBorder, modifier = Modifier.padding(vertical = 8.dp))
                 PermissionStatusRow("Emergency Call 112 Intent", "READY", SafeGreen)
             }

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ fun ContactCard(
     onToggleEnabled: (String) -> Unit,
     onEdit: (Contact) -> Unit,
     onDelete: (String) -> Unit,
+    onCall: ((Contact) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val (priorityText, priorityColor) = when (contact.priority) {
@@ -114,6 +116,20 @@ fun ContactCard(
             )
 
             Row {
+                if (onCall != null) {
+                    IconButton(
+                        onClick = { onCall(contact) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Call Contact",
+                            tint = SafeGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
                 IconButton(
                     onClick = { onEdit(contact) },
                     modifier = Modifier.size(32.dp)
