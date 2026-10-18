@@ -72,10 +72,19 @@ fun RakshaXNavGraph(
                 RakshaXBottomNav(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
-                        navController.navigate(route) {
-                            popUpTo(Screen.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (route == Screen.Home.route) {
+                            val popped = navController.popBackStack(Screen.Home.route, false)
+                            if (!popped && currentRoute != Screen.Home.route) {
+                                navController.navigate(Screen.Home.route) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        } else {
+                            navController.navigate(route) {
+                                popUpTo(Screen.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
