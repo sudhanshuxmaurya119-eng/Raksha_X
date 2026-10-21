@@ -1,10 +1,10 @@
 # RakshaX
 
-RakshaX is a personal-safety platform that connects an ESP32-C3 emergency button over BLE with live location, trusted-contact escalation, safety intelligence, and emergency notifications.
+RakshaX is a personal-safety platform that connects an ESP32 emergency button over BLE with live location, trusted-contact escalation, safety intelligence, and emergency notifications..
 
 The repository is organized into two application layers:
 
-- [`Frontend/`](Frontend/) contains the native Android app and ESP32-C3 firmware.
+- [`Frontend/`](Frontend/) contains the native Android app and ESP32 firmware.
 - [`Backend/`](Backend/) contains the FastAPI API, database models, safety intelligence, scheduler, and FCM delivery service.
 
 The backend phase plan and setup instructions are in [`Backend/README.md`](Backend/README.md). The Android phase roadmap is in [`Frontend/README.md`](Frontend/README.md).
