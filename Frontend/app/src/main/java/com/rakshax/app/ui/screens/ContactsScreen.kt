@@ -174,7 +174,7 @@ fun ContactsScreen() {
             initialName = "",
             initialPhone = "+91 ",
             initialPriority = 1,
-            initialRelation = "Family",
+            initialRelation = "Father",
             onDismiss = { showAddDialog = false },
             onConfirm = { name, phone, priority, relation ->
                 MockDataRepository.addContact(name, phone, priority, relation)

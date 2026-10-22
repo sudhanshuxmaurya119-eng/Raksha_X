@@ -49,8 +49,8 @@ object MockDataRepository {
         listOf(
             Contact(
                 id = "c1",
-                name = "Rahul Sharma",
-                phone = "+91 98111 22334",
+                name = "Shubhankar",
+                phone = "+91 63904 31893",
                 priority = 1,
                 isEnabled = true,
                 relation = "Brother",
@@ -58,20 +58,29 @@ object MockDataRepository {
             ),
             Contact(
                 id = "c2",
-                name = "Priya Sharma",
-                phone = "+91 98222 33445",
+                name = "Shreyansh Gupta",
+                phone = "+91 92361 15722",
                 priority = 2,
                 isEnabled = true,
-                relation = "Spouse",
+                relation = " Close Friend",
                 acknowledged = false
             ),
             Contact(
                 id = "c3",
-                name = "Anil Verma",
-                phone = "+91 98333 44556",
+                name = "Shreyansh Prajapati",
+                phone = "+91 95559 01123",
                 priority = 3,
                 isEnabled = true,
-                relation = "Close Friend",
+                relation = "Friend",
+                acknowledged = false
+            ),
+            Contact(
+                id = "c4",
+                name = "Sudhanshu Maurya",
+                phone = "+91 82992 58642",
+                priority = 4,
+                isEnabled = true,
+                relation = "Friend",
                 acknowledged = false
             )
         )
