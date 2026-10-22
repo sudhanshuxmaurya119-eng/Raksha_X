@@ -272,16 +272,11 @@ async def fetch_and_ingest_news() -> Dict[str, int]:
         logger.error(f"Article fetch error: {e}")
         stats["errors"] += 1
 
-    # Smart Fallback Mechanism: If APIs hit quotas or return 0, inject synthetic realistic data for MVP
+    # Never create synthetic incidents when live sources are unavailable. The map must
+    # accurately represent an empty/no-data state rather than fixtures as real reports.
     if not all_articles:
-        logger.warning("No articles fetched from live sources. Injecting realistic fallback data for MVP.")
-        now = datetime.utcnow().isoformat() + "Z"
-        all_articles = [
-            {"title": "Bag snatching reported near Connaught Place metro station late evening", "description": "A woman's bag was snatched by two men on a bike outside CP.", "url": f"fallback:cp-{now}", "published_at": now, "source": "newsapi"},
-            {"title": "Harassment complaints rise in Sector 62 Noida", "description": "Multiple complaints of eve-teasing reported by office-going women in Noida Sector 62.", "url": f"fallback:noida-{now}", "published_at": now, "source": "gnews"},
-            {"title": "Chain snatching incident in DLF Phase 3 Gurugram", "description": "Two unidentified suspects snatched a gold chain from a woman walking in DLF Phase 3.", "url": f"fallback:dlf-{now}", "published_at": now, "source": "newsapi"},
-            {"title": "Suspicious activity near South Ex Delhi raises concerns", "description": "Residents report unknown individuals loitering near markets in South Ex.", "url": f"fallback:southex-{now}", "published_at": now, "source": "gnews"}
-        ]
+        logger.info("No live news records fetched; leaving the live incident layer unchanged.")
+        return stats
         
     stats["fetched"] = len(all_articles)
 

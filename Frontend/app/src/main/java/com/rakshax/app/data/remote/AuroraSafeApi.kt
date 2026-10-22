@@ -20,6 +20,8 @@ import com.rakshax.app.data.model.RiskLevel
 import com.rakshax.app.data.model.SafetyArea
 import com.rakshax.app.data.model.SafetyCase
 import com.rakshax.app.data.model.SafetyFacility
+import com.rakshax.app.data.model.HistoricalSafetyOverview
+import com.rakshax.app.data.model.HistoricalFilterOptions
 
 class AuroraSafeApi(context: Context) {
     private val secureStore = SecureStore(context)
@@ -346,6 +348,69 @@ class AuroraSafeApi(context: Context) {
                     verified = obj.optBoolean("verified", true),
                     area = obj.optString("area").takeIf { it.isNotBlank() },
                     distanceKm = if (obj.has("distance_km") && !obj.isNull("distance_km")) obj.getDouble("distance_km").toFloat() else null
+                )
+            }
+        }
+    }
+
+    suspend fun fetchHistoricalSafetyOverview(
+        year: Int? = null,
+        category: String? = null,
+        geographicLevel: String = "district"
+    ): ApiResult<HistoricalSafetyOverview> {
+        val params = mutableListOf("geographic_level=$geographicLevel")
+        year?.let { params.add("year=$it") }
+        category?.takeIf { it.isNotBlank() }?.let { params.add("category=${java.net.URLEncoder.encode(it, "UTF-8")}") }
+        return request(method = "GET", path = "/safety/overview?${params.joinToString("&")}") { json ->
+            HistoricalSafetyOverview(
+                historicalCaseCount = json.optInt("historical_case_count", 0),
+                zones = json.optInt("zones", 0),
+                facilities = json.optInt("facilities", 0),
+                services = json.optInt("services", 0),
+                hasHistoricalData = json.optBoolean("has_historical_data", false),
+                emptyMessage = json.optString("empty_message").takeIf { !json.isNull("empty_message") && it.isNotBlank() },
+                supportEmptyMessage = json.optString("support_empty_message").takeIf { !json.isNull("support_empty_message") && it.isNotBlank() }
+            )
+        }
+    }
+
+    suspend fun fetchHistoricalFilterOptions(): ApiResult<HistoricalFilterOptions> = request(
+        method = "GET", path = "/safety/filter-options"
+    ) { json ->
+        fun stringList(key: String) = json.optJSONArray(key)?.let { array ->
+            (0 until array.length()).mapNotNull { index -> array.optString(index).takeIf { it.isNotBlank() } }
+        } ?: emptyList()
+        val years = json.optJSONArray("years")?.let { array -> (0 until array.length()).map { array.getInt(it) } } ?: emptyList()
+        HistoricalFilterOptions(years = years, categories = stringList("categories"), geographicLevels = stringList("geographic_levels"))
+    }
+
+    suspend fun fetchVerifiedPoliceStations(): ApiResult<List<SafetyFacility>> = requestArray(
+        method = "GET", path = "/safety/police-stations"
+    ) { array ->
+        (0 until array.length()).map { index ->
+            val obj = array.getJSONObject(index)
+            SafetyFacility(
+                id = obj.optString("id", "verified-police-$index"), name = obj.optString("official_name"),
+                type = FacilityType.POLICE, address = obj.optString("address", "Official address not published"),
+                phone = obj.optString("public_phone").takeIf { it.isNotBlank() }, latitude = obj.getDouble("latitude"), longitude = obj.getDouble("longitude"),
+                services = listOf("Verified police station"), emergencyAvailable = false, verified = true, area = null
+            )
+        }
+    }
+
+    suspend fun fetchVerifiedSupportServices(lat: Double? = null, lng: Double? = null): ApiResult<List<SafetyFacility>> {
+        val params = if (lat != null && lng != null) "?latitude=$lat&longitude=$lng" else ""
+        return requestArray(method = "GET", path = "/safety/support-services$params") { array ->
+            (0 until array.length()).map { index ->
+                val obj = array.getJSONObject(index)
+                val offered = obj.optJSONArray("services_offered")
+                SafetyFacility(
+                    id = obj.optString("id", "verified-service-$index"), name = obj.optString("name"),
+                    type = FacilityType.NGO, address = obj.optString("address"),
+                    phone = obj.optString("public_phone").takeIf { it.isNotBlank() }, latitude = obj.getDouble("latitude"), longitude = obj.getDouble("longitude"),
+                    services = offered?.let { values -> (0 until values.length()).map(values::getString) } ?: emptyList(),
+                    emergencyAvailable = false, verified = true, area = obj.optString("service_type").takeIf { it.isNotBlank() },
+                    distanceKm = if (obj.isNull("distance_km")) null else obj.optDouble("distance_km").toFloat()
                 )
             }
         }

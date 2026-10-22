@@ -25,6 +25,18 @@ class SafetyMapViewModel(
     private val _cases = MutableStateFlow<List<SafetyCase>>(emptyList())
     val cases: StateFlow<List<SafetyCase>> = _cases.asStateFlow()
 
+    private val _historicalOverview = MutableStateFlow(HistoricalSafetyOverview())
+    val historicalOverview: StateFlow<HistoricalSafetyOverview> = _historicalOverview.asStateFlow()
+
+    private val _historicalFilterOptions = MutableStateFlow(HistoricalFilterOptions())
+    val historicalFilterOptions: StateFlow<HistoricalFilterOptions> = _historicalFilterOptions.asStateFlow()
+
+    private val _verifiedPoliceStations = MutableStateFlow<List<SafetyFacility>>(emptyList())
+    val verifiedPoliceStations: StateFlow<List<SafetyFacility>> = _verifiedPoliceStations.asStateFlow()
+
+    private val _verifiedSupportServices = MutableStateFlow<List<SafetyFacility>>(emptyList())
+    val verifiedSupportServices: StateFlow<List<SafetyFacility>> = _verifiedSupportServices.asStateFlow()
+
     private val _filterState = MutableStateFlow(MapFilterState())
     val filterState: StateFlow<MapFilterState> = _filterState.asStateFlow()
 
@@ -104,6 +116,22 @@ class SafetyMapViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val displayedVerifiedPoliceStations: StateFlow<List<SafetyFacility>> = combine(
+        _verifiedPoliceStations, _filterState, _searchQuery
+    ) { stations, filters, query ->
+        if (!filters.showVerifiedPoliceStations) emptyList() else stations.filter {
+            query.isBlank() || it.name.contains(query, true) || it.address.contains(query, true)
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val displayedVerifiedSupportServices: StateFlow<List<SafetyFacility>> = combine(
+        _verifiedSupportServices, _filterState, _searchQuery
+    ) { services, filters, query ->
+        if (!filters.showVerifiedSupportServices) emptyList() else services.filter {
+            query.isBlank() || it.name.contains(query, true) || it.address.contains(query, true) || it.services.any { service -> service.contains(query, true) }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     init {
         loadData()
     }
@@ -115,10 +143,24 @@ class SafetyMapViewModel(
                 val facs = auroraSafeRepository.getMapFacilities(lat = userLat, lng = userLng)
                 val areas = auroraSafeRepository.getMapRiskAreas(_filterState.value.timeFilter.queryValue)
                 val casesList = auroraSafeRepository.getMapCases(timeRange = _filterState.value.timeFilter.queryValue)
+                val historical = auroraSafeRepository.getHistoricalSafetyOverview(
+                    _filterState.value.historicalYear,
+                    _filterState.value.historicalCategory,
+                    _filterState.value.historicalGeographicLevel
+                )
+                val historicalOptions = auroraSafeRepository.getHistoricalFilterOptions()
+                val stations = auroraSafeRepository.getVerifiedPoliceStations()
+                val supportServices = auroraSafeRepository.getVerifiedSupportServices(userLat, userLng)
 
                 _facilities.value = facs
                 _riskAreas.value = areas
                 _cases.value = casesList
+                _historicalOverview.value = historical ?: HistoricalSafetyOverview(
+                    emptyMessage = "Historical crime data is unavailable while the safety-data service is offline."
+                )
+                if (historicalOptions != null) _historicalFilterOptions.value = historicalOptions
+                _verifiedPoliceStations.value = stations
+                _verifiedSupportServices.value = supportServices
                 _isOffline.value = false
                 _statusMessage.value = "Safety intelligence active • ${facs.size} facilities"
             } catch (e: Exception) {

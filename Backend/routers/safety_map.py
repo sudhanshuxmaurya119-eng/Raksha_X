@@ -137,6 +137,10 @@ async def get_risk_areas(
 
     incidents = (await db.execute(incident_query)).scalars().all()
 
+    # Do not draw synthetic safety zones when no live/validated data exists.
+    if not incidents:
+        return []
+
     # 2. Fetch facilities for counts
     facilities = (await db.execute(select(Facility))).scalars().all()
 
@@ -155,22 +159,19 @@ async def get_risk_areas(
         ]
 
         total_cases = len(matching_incidents)
-        # If DB is sparse, combine with default realistic seed baseline
-        effective_cases = total_cases if total_cases > 0 else area_def.get("default_cases", 2)
+        effective_cases = total_cases
 
         monthly_cases = sum(
             1 for inc in matching_incidents
             if inc.created_at and inc.created_at >= month_start
         )
-        if total_cases == 0:
-            monthly_cases = max(1, effective_cases // 3)
 
         # Most common category
         if matching_incidents:
             categories = [inc.threat_category or inc.incident_type for inc in matching_incidents]
             top_category = max(set(categories), key=categories.count).replace("_", " ").title()
         else:
-            top_category = area_def.get("default_top_category", "Public Safety")
+            top_category = "Public Safety"
 
         # Determine risk level based on actual cases and configurable thresholds
         if effective_cases <= cfg.low_max_cases:
@@ -200,9 +201,9 @@ async def get_risk_areas(
                 cases_this_month=monthly_cases,
                 top_category=top_category,
                 safety_score=int(safety_score),
-                nearby_police_count=max(p_count, 1),
-                nearby_ngo_count=max(n_count, 1),
-                nearby_hospital_count=max(h_count, 1)
+                nearby_police_count=p_count,
+                nearby_ngo_count=n_count,
+                nearby_hospital_count=h_count
             )
         )
 

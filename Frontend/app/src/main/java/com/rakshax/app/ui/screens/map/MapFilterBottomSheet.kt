@@ -25,6 +25,9 @@ import com.rakshax.app.ui.theme.*
 @Composable
 fun MapFilterBottomSheet(
     filterState: MapFilterState,
+    historicalYears: List<Int>,
+    historicalCategories: List<String>,
+    historicalGeographicLevels: List<String>,
     onFilterChanged: (MapFilterState) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
@@ -255,6 +258,59 @@ fun MapFilterBottomSheet(
                     }
                 }
 
+                // Historical data is configured from the validated dataset options returned by the API.
+                FilterSection(
+                    title = "HISTORICAL CRIME DATA",
+                    icon = Icons.Default.History,
+                    iconColor = WarningAmber
+                ) {
+                    FilterSwitchRow(
+                        label = "Historical recorded crime (aggregate)",
+                        checked = localState.showHistoricalCrime,
+                        color = WarningAmber,
+                        onCheckedChange = {
+                            localState = localState.copy(showHistoricalCrime = it)
+                            onFilterChanged(localState)
+                        }
+                    )
+                    if (historicalYears.isEmpty()) {
+                        Text("No validated historical dataset has been imported.", color = TextMuted, fontSize = 11.sp)
+                    } else {
+                        Text("YEAR", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        FilterCheckRow(
+                            label = "All imported years", checked = localState.historicalYear == null, color = WarningAmber,
+                            onCheckedChange = { localState = localState.copy(historicalYear = null); onFilterChanged(localState) }
+                        )
+                        historicalYears.forEach { year ->
+                            FilterCheckRow(
+                                label = year.toString(), checked = localState.historicalYear == year, color = WarningAmber,
+                                onCheckedChange = { localState = localState.copy(historicalYear = year); onFilterChanged(localState) }
+                            )
+                        }
+                        Text("CRIME CATEGORY", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        FilterCheckRow(
+                            label = "All categories", checked = localState.historicalCategory == null, color = WarningAmber,
+                            onCheckedChange = { localState = localState.copy(historicalCategory = null); onFilterChanged(localState) }
+                        )
+                        historicalCategories.forEach { category ->
+                            FilterCheckRow(
+                                label = category, checked = localState.historicalCategory == category, color = WarningAmber,
+                                onCheckedChange = { localState = localState.copy(historicalCategory = category); onFilterChanged(localState) }
+                            )
+                        }
+                        if (historicalGeographicLevels.isNotEmpty()) {
+                            Text("GEOGRAPHIC RESOLUTION", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            historicalGeographicLevels.forEach { level ->
+                                FilterCheckRow(
+                                    label = level.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                                    checked = localState.historicalGeographicLevel == level, color = WarningAmber,
+                                    onCheckedChange = { localState = localState.copy(historicalGeographicLevel = level); onFilterChanged(localState) }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // ===== MAP LAYERS =====
                 FilterSection(
                     title = "MAP LAYERS",
@@ -287,6 +343,18 @@ fun MapFilterBottomSheet(
                             localState = localState.copy(showCases = it)
                             onFilterChanged(localState)
                         }
+                    )
+                    FilterSwitchRow(
+                        label = "Verified Police Stations",
+                        checked = localState.showVerifiedPoliceStations,
+                        color = AccentBlue,
+                        onCheckedChange = { localState = localState.copy(showVerifiedPoliceStations = it); onFilterChanged(localState) }
+                    )
+                    FilterSwitchRow(
+                        label = "Verified Support Services",
+                        checked = localState.showVerifiedSupportServices,
+                        color = SafeGreen,
+                        onCheckedChange = { localState = localState.copy(showVerifiedSupportServices = it); onFilterChanged(localState) }
                     )
                 }
 

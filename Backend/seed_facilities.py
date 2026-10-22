@@ -3,6 +3,7 @@ from sqlalchemy import select, func
 from database import AsyncSessionLocal
 from models.facility import Facility
 from models.map_config import MapConfig
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -377,9 +378,11 @@ async def seed_facilities_and_config():
 
         # 2. Facilities
         fac_count = (await db.execute(select(func.count()).select_from(Facility))).scalar()
-        if fac_count == 0:
+        if fac_count == 0 and settings.ENABLE_DEMO_DATA:
             logger.info(f"Seeding {len(DELHI_NCR_FACILITIES)} safety facilities across Delhi NCR...")
             for f in DELHI_NCR_FACILITIES:
                 db.add(Facility(**f))
             await db.commit()
             logger.info("Safety facilities seeded successfully.")
+        elif fac_count == 0:
+            logger.info("No demo facilities loaded; ENABLE_DEMO_DATA is disabled.")

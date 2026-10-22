@@ -6,7 +6,7 @@ import logging
 from config import settings
 from database import init_db, AsyncSessionLocal
 from routers import auth, incidents, safety, routes, sos, dashboard
-from routers import data_sources, saved_routes, notifications, safety_map
+from routers import data_sources, saved_routes, notifications, safety_map, crime_heatmap
 from seed_facilities import seed_facilities_and_config
 from ml.risk_model import load_model
 
@@ -25,11 +25,13 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(func.count()).select_from(Incident))
         count = result.scalar()
-        if count == 0:
+        if count == 0 and settings.ENABLE_DEMO_DATA:
             logger.info("Seeding database with sample data...")
             from seed_data import seed_incidents
             await seed_incidents()
             logger.info("Database seeded.")
+        elif count == 0:
+            logger.info("No incident seed data loaded; ENABLE_DEMO_DATA is disabled.")
     
     # Seed facilities and safety map config
     try:
@@ -100,6 +102,8 @@ app.include_router(data_sources.router, prefix="/data-sources", tags=["data-sour
 app.include_router(saved_routes.router, prefix="/saved-routes", tags=["saved-routes"])
 app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 app.include_router(safety_map.router,    prefix="/map",          tags=["safety-map"])
+app.include_router(crime_heatmap.router, prefix="/safety",       tags=["historical-safety-data"])
+app.include_router(crime_heatmap.admin_router, prefix="/admin/safety-data", tags=["safety-data-admin"])
 
 
 @app.get("/")

@@ -51,6 +51,10 @@ fun SafetyMapScreen(
     val displayedFacilities by viewModel.displayedFacilities.collectAsState()
     val displayedAreas by viewModel.displayedAreas.collectAsState()
     val displayedCases by viewModel.displayedCases.collectAsState()
+    val displayedVerifiedPoliceStations by viewModel.displayedVerifiedPoliceStations.collectAsState()
+    val displayedVerifiedSupportServices by viewModel.displayedVerifiedSupportServices.collectAsState()
+    val historicalOverview by viewModel.historicalOverview.collectAsState()
+    val historicalFilterOptions by viewModel.historicalFilterOptions.collectAsState()
     val filterState by viewModel.filterState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedFacility by viewModel.selectedFacility.collectAsState()
@@ -77,16 +81,6 @@ fun SafetyMapScreen(
     ) { permissions ->
         hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-    }
-
-    // Request permission on launch
-    LaunchedEffect(Unit) {
-        permissionLauncher.launch(
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-        )
     }
 
     // Update user location from LocationRepository
@@ -136,7 +130,7 @@ fun SafetyMapScreen(
 
     // Draw map overlays when data changes
     LaunchedEffect(
-        googleMap, displayedFacilities, displayedAreas, displayedCases,
+        googleMap, displayedFacilities, displayedAreas, displayedCases, displayedVerifiedPoliceStations, displayedVerifiedSupportServices,
         userLocation, filterState.mapTypeIndex
     ) {
         val map = googleMap ?: return@LaunchedEffect
@@ -183,6 +177,18 @@ fun SafetyMapScreen(
                     .position(LatLng(facility.latitude, facility.longitude))
                     .title(facility.name)
                     .snippet(facility.type.label)
+                    .icon(MapMarkerUtils.getFacilityMarker(context, facility.type))
+            )
+            marker?.tag = facility
+        }
+
+        // These layers only receive backend records marked verified with coordinates.
+        (displayedVerifiedPoliceStations + displayedVerifiedSupportServices).forEach { facility ->
+            val marker = map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(facility.latitude, facility.longitude))
+                    .title(facility.name)
+                    .snippet("Verified ${facility.type.label}")
                     .icon(MapMarkerUtils.getFacilityMarker(context, facility.type))
             )
             marker?.tag = facility
@@ -314,6 +320,26 @@ fun SafetyMapScreen(
                 .padding(top = 8.dp)
         )
 
+        // Historical records are aggregate data, not an assertion about present danger.
+        if (filterState.showHistoricalCrime && !historicalOverview.hasHistoricalData) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 68.dp, start = 16.dp, end = 16.dp),
+                color = SurfaceDark.copy(alpha = 0.95f),
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder)
+            ) {
+                Text(
+                    text = historicalOverview.emptyMessage ?: "No verified historical crime data is available for the selected area and year.",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+                )
+            }
+        }
+
         // ===== BOTTOM-LEFT: Safety Legend =====
         SafetyLegendPill(
             modifier = Modifier
@@ -423,7 +449,7 @@ fun SafetyMapScreen(
                 }
 
                 Text(
-                    text = "${displayedAreas.size} zones • ${displayedFacilities.size} services",
+                    text = "${historicalOverview.facilities} facilities / ${historicalOverview.zones} zones / ${historicalOverview.services} services",
                     color = TextMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium
@@ -484,7 +510,7 @@ fun SafetyMapScreen(
                 .navigationBarsPadding()
         ) {
             NearbyFacilitiesSheet(
-                facilities = displayedFacilities,
+                facilities = displayedFacilities + displayedVerifiedPoliceStations + displayedVerifiedSupportServices,
                 onFacilityClick = { fac ->
                     viewModel.selectFacility(fac)
                     viewModel.toggleNearbySheet(false)
@@ -509,6 +535,9 @@ fun SafetyMapScreen(
         ) {
             MapFilterBottomSheet(
                 filterState = filterState,
+                historicalYears = historicalFilterOptions.years,
+                historicalCategories = historicalFilterOptions.categories,
+                historicalGeographicLevels = historicalFilterOptions.geographicLevels,
                 onFilterChanged = { viewModel.updateFilterState(it) },
                 onClose = { viewModel.toggleFilterSheet(false) }
             )

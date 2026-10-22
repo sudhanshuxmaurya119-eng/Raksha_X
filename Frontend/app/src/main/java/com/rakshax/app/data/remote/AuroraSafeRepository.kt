@@ -9,6 +9,8 @@ import org.json.JSONObject
 import com.rakshax.app.data.model.SafetyFacility
 import com.rakshax.app.data.model.SafetyArea
 import com.rakshax.app.data.model.SafetyCase
+import com.rakshax.app.data.model.HistoricalSafetyOverview
+import com.rakshax.app.data.model.HistoricalFilterOptions
 
 class AuroraSafeRepository(context: Context) {
     private val api = AuroraSafeApi(context)
@@ -121,6 +123,17 @@ class AuroraSafeRepository(context: Context) {
     }
 
     suspend fun getMapConfig() = api.fetchMapConfig()
+
+    suspend fun getHistoricalSafetyOverview(year: Int?, category: String?, geographicLevel: String): HistoricalSafetyOverview? =
+        api.fetchHistoricalSafetyOverview(year, category, geographicLevel).value
+
+    suspend fun getHistoricalFilterOptions(): HistoricalFilterOptions? = api.fetchHistoricalFilterOptions().value
+
+    suspend fun getVerifiedPoliceStations(): List<SafetyFacility> =
+        api.fetchVerifiedPoliceStations().value ?: emptyList()
+
+    suspend fun getVerifiedSupportServices(lat: Double? = null, lng: Double? = null): List<SafetyFacility> =
+        api.fetchVerifiedSupportServices(lat, lng).value ?: emptyList()
 
     suspend fun flushPendingActions(): Int = withContext(Dispatchers.IO) {
         var flushed = 0

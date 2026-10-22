@@ -47,3 +47,10 @@ async def get_optional_current_user(
     if not authorization:
         return None
     return await get_current_user(authorization=authorization, db=db)
+
+
+async def require_safety_data_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Restrict destructive/import operations to an explicit server-side allowlist."""
+    if current_user.email.lower() not in settings.get_safety_data_admin_emails():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Safety-data administrator access required")
+    return current_user

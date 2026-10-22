@@ -98,7 +98,31 @@ data class MapFilterState(
     val showHeatmapAreas: Boolean = true,
     val showFacilities: Boolean = true,
     val showCases: Boolean = true,
+    // Historical records remain distinct from predictive/live safety layers.
+    val historicalYear: Int? = null,
+    val historicalCategory: String? = null,
+    val historicalGeographicLevel: String = "district",
+    val historicalMetric: String = "case_count",
+    val showHistoricalCrime: Boolean = false,
+    val showVerifiedPoliceStations: Boolean = true,
+    val showVerifiedSupportServices: Boolean = true,
     val mapTypeIndex: Int = 0 // 0: Normal, 1: Satellite, 2: Terrain
+)
+
+data class HistoricalSafetyOverview(
+    val historicalCaseCount: Int = 0,
+    val zones: Int = 0,
+    val facilities: Int = 0,
+    val services: Int = 0,
+    val hasHistoricalData: Boolean = false,
+    val emptyMessage: String? = null,
+    val supportEmptyMessage: String? = null
+)
+
+data class HistoricalFilterOptions(
+    val years: List<Int> = emptyList(),
+    val categories: List<String> = emptyList(),
+    val geographicLevels: List<String> = emptyList()
 )
 
 data class MapThresholdConfig(

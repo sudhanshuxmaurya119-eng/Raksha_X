@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # Comma-separated, server-side allowlist for safety-data administrators.
+    # Keep empty until an operator explicitly grants an account import access.
+    SAFETY_DATA_ADMIN_EMAILS: str = ""
+    # Demo records are disabled by default so the map never presents fixtures as real safety data.
+    ENABLE_DEMO_DATA: bool = False
 
     # Real-time Data Source Keys
     NEWS_API_KEY: str = ""
@@ -30,6 +35,9 @@ class Settings(BaseSettings):
 
     def get_target_cities(self) -> List[str]:
         return [c.strip() for c in self.TARGET_CITIES.split(",")]
+
+    def get_safety_data_admin_emails(self) -> List[str]:
+        return [email.strip().lower() for email in self.SAFETY_DATA_ADMIN_EMAILS.split(",") if email.strip()]
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -37,7 +37,7 @@ python -m uvicorn main:app --reload --port 8000
 
 Open the API contract at `http://127.0.0.1:8000/docs`.
 
-Seed data is created automatically when the local database has no incidents. The scheduler, weather/news integrations, Gemini classification, and FCM delivery degrade gracefully when their keys are not configured.
+Production-safe defaults do not create incident or facility fixtures. Set `ENABLE_DEMO_DATA=true` only for a local demonstration environment. The scheduler, weather/news integrations, Gemini classification, and FCM delivery degrade gracefully when their keys are not configured.
 
 ## Environment
 
@@ -73,6 +73,27 @@ Keep the Supabase connection string server-side. The Android app should call thi
 - `/dashboard` - aggregate safety metrics
 - `/data-sources` - live data refresh and service diagnostics
 - `/health` - scheduler and API health
+- `/safety` - validated historical-crime aggregates, verified stations, and verified support services
+- `/admin/safety-data/import` - administrator-only CSV/XLS/XLSX import and rollback
+
+## Historical Crime Heatmap Data
+
+The historical layer is intentionally empty on a new deployment. It never creates incident points from district totals, fake coordinates, or unverified facilities. District aggregates can be imported through the admin endpoint and are returned as source-attributed statistics; a geographic heat overlay is only drawn after a verified district-boundary GeoJSON source is available.
+
+The API endpoints are:
+
+- `GET /safety/crime-statistics`, `GET /safety/heatmap`, `GET /safety/overview`, and `GET /safety/filter-options`
+- `GET /safety/police-stations` and `GET /safety/support-services` (verified records with coordinates only)
+- `GET /safety/data-sources` and `GET /safety/health`
+- `POST /admin/safety-data/import` and `DELETE /admin/safety-data/imports/{import_id}`
+
+Set `SAFETY_DATA_ADMIN_EMAILS` to a comma-separated server-side allowlist before importing. The upload accepts CSV, XLS, or XLSX (10 MB maximum), previews its first records, maps common column headings, validates year/count/geography, preserves the reported district name and source provenance, rejects duplicate/bad rows, and supports explicit source replacement and rollback.
+
+Required logical columns are reporting year, state, district as reported, crime category, and case count. Common human-readable aliases such as `Year`, `District`, `Category`, and `Count` are accepted. Geographic level defaults to `district`; it may be `district`, `police_station`, `state`, or `national`.
+
+Apply [`migrations/001_crime_heatmap.sql`](migrations/001_crime_heatmap.sql) in DDL-managed production environments. Fresh/local databases receive these additive tables during normal startup through SQLAlchemy metadata creation.
+
+The current official references are the NCRB OGD district-crime catalog, NCRB Crime in India catalog, Meerut district's station list, Uttar Pradesh Police, and the Ministry of Women and Child Development One Stop Centre registry. They are registered as provenance references only; no external download is performed at startup. `data/ncrb_up_crimes_against_women_2015.csv` is a manually transcribed, validated import-ready CSV from the supplied NCRB Table 5.1: it contains 76 Uttar Pradesh 2015 aggregate rows (including Meerut = 859; total = 35,527). It is not silently seeded; an allowlisted administrator must import it with the original table's provenance URL.
 
 ## Backend Phases
 
@@ -93,7 +114,7 @@ Keep the Supabase connection string server-side. The Android app should call thi
 
 - Async SQLAlchemy session management.
 - User, incident, SOS, trusted-contact, push-token, and saved-route models.
-- Automatic local seed data for development.
+- Optional local demo seed data, disabled by default.
 
 ### [x] Phase 3 - Authentication and Device Identity
 
